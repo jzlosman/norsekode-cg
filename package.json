@@ -10,6 +10,7 @@
     "test:watch": "vitest",
     "test:lua-ai": "fengari scripts/tts-lua-ai.test.lua all",
     "generate:cards": "node scripts/generate-card-assets.mjs",
+    "generate:tts-music": "node scripts/generate-tts-music.mjs",
     "build:tts-assets": "node scripts/generate-tts-assets.mjs",
     "build:tts-save": "node scripts/build-tts-save.mjs",
     "build:tts": "npm run build:tts-assets && npm run build:tts-save && npm run verify:tts",

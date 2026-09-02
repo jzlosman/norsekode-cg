@@ -1,0 +1,52 @@
+{
+  "artist": "Norse Kode",
+  "album": "Voiceless Edda",
+  "bitrateKbps": 192,
+  "tracks": [
+    {
+      "source": "Ginnungagap - The Yawning Silence.wav",
+      "file": "01-ginnungagap-the-yawning-silence.mp3",
+      "title": "Ginnungagap — The Yawning Silence"
+    },
+    {
+      "source": "Askr and Embla - The New Beginning.wav",
+      "file": "02-askr-and-embla-the-new-beginning.mp3",
+      "title": "Askr and Embla — The New Beginning"
+    },
+    {
+      "source": "Hamr - The Vessel.wav",
+      "file": "03-hamr-the-vessel.mp3",
+      "title": "Hamr — The Vessel"
+    },
+    {
+      "source": "Hugr - Beyond the Body.wav",
+      "file": "04-hugr-beyond-the-body.mp3",
+      "title": "Hugr — Beyond the Body"
+    },
+    {
+      "source": "Fylgja - The One Who Walks Before.wav",
+      "file": "05-fylgja-the-one-who-walks-before.mp3",
+      "title": "Fylgja — The One Who Walks Before"
+    },
+    {
+      "source": "Hamingja - Luck of the Bloodline.wav",
+      "file": "06-hamingja-luck-of-the-bloodline.mp3",
+      "title": "Hamingja — Luck of the Bloodline"
+    },
+    {
+      "source": "Fimbulvetr - The Long Winter.wav",
+      "file": "07-fimbulvetr-the-long-winter.mp3",
+      "title": "Fimbulvetr — The Long Winter"
+    },
+    {
+      "source": "Ragnarök - The Doom of the Gods.wav",
+      "file": "08-ragnarok-the-doom-of-the-gods.mp3",
+      "title": "Ragnarök — The Doom of the Gods"
+    },
+    {
+      "source": "Líf and Lífþrasir - The Next New Beginning.wav",
+      "file": "09-lif-and-lifthrasir-the-next-new-beginning.mp3",
+      "title": "Líf and Lífþrasir — The Next New Beginning"
+    }
+  ]
+}
