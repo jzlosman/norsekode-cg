@@ -6,8 +6,9 @@ This directory contains the multiplayer tabletop version of Norse Kode. TTS is t
 
 - `norse-kode.lua` — editable TTS controller
 - `norse-kode-ui.xml` — public status/log UI and private Blood Oath controls
-- `assets/norse-kode-table-base.png` — base wooden board art
-- `assets/norse-kode-table.png` — generated board texture with mapped draw/discard spaces
+- `assets/norse-kode-table-base.png` — wood-and-iron board substrate
+- `board-layout.json` — measured card wells shared by the board generator and TTS save
+- `assets/norse-kode-table.png` — original wood-and-iron board with mapped draft, draw, and face-up discard wells
 - `assets/norse-kode-deck.png` — 42-card, 7×6 TTS deck atlas
 - `assets/card-back.png` — card back
 - `assets/norse-kode-player-mat-base.png` — generated base art for the player mat
@@ -69,7 +70,7 @@ Typical save locations:
 
 ### Draft
 
-The host starts the War from the readable screen-space control panel on the right. The first board column is the vertical draw/discard column: draw pile on the top row and discard pile on the bottom row. The five columns to its right are the ten-card draft grid. The script shuffles the face-down 42-card deck, deals ten separated face-up cards into those five draft columns, and assigns a random first drafter. The active player clicks **TAKE** on one card. The card goes to that player's private TTS hand and the turn alternates automatically. In solo mode, the AI automatically drafts the highest-strength legal card when its turn arrives and keeps its cards face-down.
+The host starts the War from the screen-space control panel. The board groups ten face-up draft cards into two tight rows of five. A separate utility column holds the face-down draw pile above a face-up discard pile. The board artwork, dealt-card positions, and twelve snap points all come from `board-layout.json`. The script shuffles the 42-card deck, deals the draft, and assigns a random first drafter. The active player clicks **TAKE** on one card. The card goes to that player's private TTS hand and the turn alternates automatically. In solo mode, the AI automatically drafts the highest-strength legal card when its turn arrives and keeps its cards face-down.
 
 ### Formation
 
@@ -87,7 +88,7 @@ Each reveal flips only the active slot(s). Lua calculates chain bonuses, Bloodsw
 
 **Jarl — Lead by Example:** Jarl queues +3 after a win, +2 after a tie, or +1 after a loss for his side's next Clash entry. He leads when he is the primary warrior or when a Bloodsworn consumes him. The bonus applies once, stacks with Vengeance, and is not removed by Shield Wall. Legacy `skald-*` cards from older saves resolve as Jarl.
 
-After the final Clash—or as soon as a side reaches three Clash wins—the result stays on the table in **SKIRMISH READY**. The host checks the revealed cards, math, and Clash marker, then clicks **END SKIRMISH**. That returns all temporary Clash markers to the bag and moves all ten cards to the neutral discard area; no Skirmish-win card stack is created. The winner receives one thematic Skirmish marker on the next space of their five-space Victory Track. The winner's opponent drafts first in the next Skirmish. The first side to five wins the War; starting a new War recycles the used cards and victory markers.
+After the final Clash—or as soon as a side reaches three Clash wins—the result stays on the table in **SKIRMISH READY**. The host checks the revealed cards, math, and Clash marker, then clicks **END SKIRMISH**. That returns all temporary Clash markers to the bag and moves all ten cards face-up to the labeled discard well; no Skirmish-win card stack is created. The winner receives one thematic Skirmish marker on the next space of their five-space Victory Track. The winner's opponent drafts first in the next Skirmish. The first side to five wins the War; starting a new War recycles the used cards and victory markers.
 
 When Blood Oaths are revealed, each player receives up to two red **YES** or **NO** markers in their own ordered **OATH 1 / OATH 2** placeholder slots on their player mat. The row never identifies which card produced a marker; markers remain ordered by reveal order.
 

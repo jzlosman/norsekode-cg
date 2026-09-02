@@ -1,7 +1,11 @@
+import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
+import { imagePointToLocal, loadBoardLayout } from './tts-board-layout.mjs'
 import { buildTtsSave, loadSource } from './tts-save.mjs'
 
 const assetBaseUrl = 'https://example.com/norse-kode/'
+const boardLayoutFile = new URL('../tts/board-layout.json', import.meta.url)
+const tableGeneratorFile = new URL('./generate-tts-table.py', import.meta.url)
 
 const allContainedCards = (save: any) => {
   const deck = save.ObjectStates.find((object: any) => object.Name === 'DeckCustom')
@@ -106,7 +110,7 @@ describe('TTS save generation', () => {
     expect(north.Transform.scaleX / north.Transform.scaleZ).toBeCloseTo(0.9167, 3)
     expect(save.LuaScript).toContain('SLOT_X = { -6, -3, 0, 3, 6 }')
     expect(save.LuaScript).toContain('SLOT_Z = { north = -8.4, south = 8.4 }')
-    expect(save.LuaScript).toContain('BOARD_SCALE_Z = 6.8')
+    expect(save.LuaScript).toContain('scale = { x = 8, z = 6.8 }')
     expect(save.LuaScript).toContain('PLAYER_MAT_SCALE_Z = 3.6')
     expect(save.LuaScript).toContain('side == "north" and -CLASH_MARKER_OFFSET or CLASH_MARKER_OFFSET')
     expect(save.LuaScript).toContain('side == "north" and SKIRMISH_TRACK_OFFSET or -SKIRMISH_TRACK_OFFSET')
@@ -129,14 +133,34 @@ describe('TTS save generation', () => {
     expect(save.LuaScript).toContain('card.setPosition(slotPosition(side, index))')
   })
 
-  it('separates the draft rows and hides a card when it is dropped on a slot', () => {
-    const save = buildTtsSave({ ...loadSource() })
+  it('uses one measured layout for two tight five-card draft rows', () => {
+    expect(existsSync(boardLayoutFile)).toBe(true)
+    if (!existsSync(boardLayoutFile)) return
 
-    expect(save.LuaScript).toContain('DRAFT_COLUMN_X = { -3.9, -1.3, 1.3, 3.9, 6.5 }')
-    expect(save.LuaScript).toContain('z = -1.75')
-    expect(save.LuaScript).toContain('z = 1.75')
-    expect(save.LuaScript).toContain('function onObjectDrop(playerColor, object)')
-    expect(save.LuaScript).toContain('Card hidden in ')
+    const layout = JSON.parse(readFileSync(boardLayoutFile, 'utf8'))
+    const generator = readFileSync(tableGeneratorFile, 'utf8')
+
+    expect(layout).toMatchObject({
+      canvas: { width: 1448, height: 1086 },
+      boardScale: { x: 8, z: 6.8 },
+      cardSize: { width: 188, height: 264 },
+      draw: { x: 1248, y: 406 },
+      discard: { x: 1248, y: 680 },
+    })
+    expect(layout.draft).toEqual([
+      { x: 174, y: 406 }, { x: 368, y: 406 }, { x: 562, y: 406 }, { x: 756, y: 406 }, { x: 950, y: 406 },
+      { x: 174, y: 680 }, { x: 368, y: 680 }, { x: 562, y: 680 }, { x: 756, y: 680 }, { x: 950, y: 680 },
+    ])
+    const loadedLayout = loadBoardLayout()
+    expect(imagePointToLocal(loadedLayout, { x: 0, y: 0 })).toEqual({ x: -1, z: -0.5 })
+    expect(imagePointToLocal(loadedLayout, { x: 1448, y: 1086 })).toEqual({ x: 1, z: 0.5 })
+    expect(generator).toContain('board-layout.json')
+    expect(generator).toContain('Inter-SemiBold.ttf')
+    expect(generator).toContain('"-strip"')
+    expect(generator).toContain('#46E3A8')
+    expect(generator).toContain('#EAE2D0')
+    expect(generator).not.toMatch(/THE MUSTER|TEN WARRIORS|DRAFT FIELD|DECKS|DRAFT OPENLY|FACE UP/)
+    expect(generator).not.toMatch(/surfaceWash|auroraBloom|fieldFill|softShadow|slotShadow/)
   })
 
   it('uses a readable screen-space control panel instead of 3D action buttons', () => {
@@ -224,33 +248,34 @@ describe('TTS save generation', () => {
     expect(save.LuaScript).toContain('south = { "b00011", "b00012" }')
   })
 
-  it('adds draw-pile and discard-pile spaces and normalizes the discard stack', () => {
+  it('snaps the deck and face-up discard to their measured printed wells', () => {
     const save = buildTtsSave({ ...loadSource() })
     const names = save.ObjectStates.map((object: any) => object.Nickname)
     const deck = save.ObjectStates.find((object: any) => object.Nickname === 'Norse Kode Deck')
+    const cards = deck.ContainedObjects
 
-    expect(names).toEqual(expect.arrayContaining(['Draw Pile Slot', 'Discard Slot']))
-    const drawSlot = save.ObjectStates.find((object: any) => object.Nickname === 'Draw Pile Slot')
-    const discardSlot = save.ObjectStates.find((object: any) => object.Nickname === 'Discard Slot')
-
-    expect(deck.Transform.posX).toBe(-6.5)
-    expect(deck.Transform.posZ).toBe(-1.75)
-    expect(drawSlot.Transform.posX).toBe(-6.5)
-    expect(drawSlot.Transform.posZ).toBe(-1.75)
-    expect(discardSlot.Transform.posX).toBe(-6.5)
-    expect(discardSlot.Transform.posZ).toBe(1.75)
-    expect(save.LuaScript).toContain('DRAW_PILE_POSITION = { x = -6.5, y = 1.25, z = -1.75 }')
-    expect(save.LuaScript).toContain('DISCARD_POSITION = { x = -6.5, y = 1.25, z = 1.75 }')
-    expect(save.LuaScript).toContain('DRAFT_POSITIONS')
-    expect(save.LuaScript).toContain('DRAFT_COLUMN_X[5]')
-    expect(save.LuaScript).toContain('z = -1.75')
-    expect(save.LuaScript).toContain('z = 1.75')
+    expect(names).not.toEqual(expect.arrayContaining(['Draw Pile Slot', 'Discard Slot']))
+    expect(deck.Transform.posX).toBeCloseTo(5.7901, 3)
+    expect(deck.Transform.posZ).toBeCloseTo(-0.8578, 3)
+    expect(deck.Snap).toBe(true)
+    expect(cards.every((card: any) => card.Snap === true)).toBe(true)
+    expect(save.LuaScript).toContain('BOARD_LAYOUT.draw')
+    expect(save.LuaScript).toContain('BOARD_LAYOUT.discard')
+    expect(save.LuaScript).toContain('function boardWorldPosition')
+    expect(save.LuaScript).toContain('board.positionToWorld')
+    expect(save.LuaScript).toContain('position = boardWorldPosition(BOARD_LAYOUT.draft[index], 1.25)')
+    const moveToDiscard = save.LuaScript.slice(save.LuaScript.indexOf('function moveToDiscard'), save.LuaScript.indexOf('function revealEntry'))
+    const moveSkirmishCards = save.LuaScript.slice(save.LuaScript.indexOf('function moveSkirmishCardsToDiscard'), save.LuaScript.indexOf('function skirmishWinner'))
     expect(save.LuaScript).toContain('function discardCardPosition(index)')
+    expect(moveToDiscard).toContain('ensureFaceUp(card)')
+    expect(moveToDiscard).not.toContain('ensureFaceDown(card)')
+    expect(moveSkirmishCards).toContain('ensureFaceUp(card)')
+    expect(moveSkirmishCards).not.toContain('ensureFaceDown(card)')
     expect(save.LuaScript).toContain('card.setPosition(discardCardPosition(index))')
     expect(save.LuaScript).toContain('board.setSnapPoints(boardSnaps)')
-    expect(save.LuaScript).toContain('x = target.x / BOARD_SCALE_X')
-    expect(save.LuaScript).toContain('z = target.z / BOARD_SCALE_Z')
-    expect(save.LuaScript).toContain('for _, target in ipairs(DRAFT_POSITIONS) do')
+    expect(save.LuaScript).toContain('for _, target in ipairs(BOARD_LAYOUT.draft) do')
+    expect(save.LuaScript).not.toContain('DRAFT_COLUMN_X')
+    expect(save.LuaScript).not.toContain('DRAW_PILE_SLOT_GUID')
   })
 
   it('keeps the final Clash visible until the host explicitly ends the Skirmish', () => {
@@ -272,7 +297,7 @@ describe('TTS save generation', () => {
     expect(finishSkirmish).toContain('returnClashTokensToBag()')
     expect(finishSkirmish).toContain('moveSkirmishCardsToDiscard()')
     expect(save.LuaScript).not.toContain('SKIRMISH_STACK_POSITIONS')
-    expect(save.LuaScript).toContain('DISCARD_POSITION')
+    expect(save.LuaScript).toContain('BOARD_LAYOUT.discard')
     expect(save.LuaScript).toContain('function finishSkirmishWhenReady')
     expect(save.LuaScript).toContain('STATE.phase = "SKIRMISH_ENDING"')
   })

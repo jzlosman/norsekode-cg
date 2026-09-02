@@ -35,7 +35,7 @@ The generated deck lives in `public/assets/cards/` as 42 individual 750×1050 PN
 npm run generate:cards
 ```
 
-The generator builds a branded **Night & Saga** deck: dark aurora suit cards with runic ranks and geometric weapon pips, plus bone-colored cinematic-etching Hero cards. Shield Maiden uses **Vengeance** as a primary warrior, drawing on the previous numeric defeat margin; Jarl uses **Lead by Example** to strengthen the next entry based on his Clash result, even when Bloodsworn consumes him.
+The generator builds a branded **Night & Saga** deck: dark suit cards with runic ranks and familiar illustrated weapon pips, plus color-coded bone cinematic-etching Hero cards. Shield Maiden uses **Vengeance** as a primary warrior, drawing on the previous numeric defeat margin; Jarl uses **Lead by Example** to strengthen the next entry based on his Clash result, even when Bloodsworn consumes him.
 
 ## Verify
 

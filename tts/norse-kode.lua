@@ -45,35 +45,15 @@ OATH_SLOT_GUIDS = {
   north = { "b00009", "b00010" },
   south = { "b00011", "b00012" },
 }
-DRAW_PILE_SLOT_GUID = "b00013"
-DISCARD_SLOT_GUID = "b00014"
-
--- Formation mats use five evenly spaced slots; the board draft grid has a separate first pile column.
+-- BOARD_LAYOUT is generated from tts/board-layout.json and prepended to the TTS save.
+-- Its positions use the board tile's local coordinate space, so art, dealt cards, and snaps share one source.
 SLOT_X = { -6, -3, 0, 3, 6 }
-DRAFT_COLUMN_X = { -3.9, -1.3, 1.3, 3.9, 6.5 }
 SLOT_Z = { north = -8.4, south = 8.4 }
-BOARD_SCALE_X = 8
-BOARD_SCALE_Z = 6.8
 PLAYER_MAT_SCALE_X = 3.3
 PLAYER_MAT_SCALE_Z = 3.6
 CLASH_MARKER_OFFSET = 2.09
 SKIRMISH_TRACK_OFFSET = 2.3
 SKIRMISH_TRACK_X = { 0.8, 1.96, 3.12, 4.28, 5.44 }
-DRAFT_POSITIONS = {
-  { x = DRAFT_COLUMN_X[1], y = 1.25, z = -1.75 },
-  { x = DRAFT_COLUMN_X[2], y = 1.25, z = -1.75 },
-  { x = DRAFT_COLUMN_X[3], y = 1.25, z = -1.75 },
-  { x = DRAFT_COLUMN_X[4], y = 1.25, z = -1.75 },
-  { x = DRAFT_COLUMN_X[5], y = 1.25, z = -1.75 },
-  { x = DRAFT_COLUMN_X[1], y = 1.25, z = 1.75 },
-  { x = DRAFT_COLUMN_X[2], y = 1.25, z = 1.75 },
-  { x = DRAFT_COLUMN_X[3], y = 1.25, z = 1.75 },
-  { x = DRAFT_COLUMN_X[4], y = 1.25, z = 1.75 },
-  { x = DRAFT_COLUMN_X[5], y = 1.25, z = 1.75 },
-}
--- These coordinates match the two printed board slots in norse-kode-table.png.
-DRAW_PILE_POSITION = { x = -6.5, y = 1.25, z = -1.75 }
-DISCARD_POSITION = { x = -6.5, y = 1.25, z = 1.75 }
 OATH_MARKER_POSITIONS = {
   north = {
     { x = -1.85, y = 1.65, z = -11 },
@@ -1858,18 +1838,16 @@ function returnClashTokensToBag()
 end
 
 function discardCardPosition(index)
-  return {
-    x = DISCARD_POSITION.x,
-    y = DISCARD_POSITION.y + ((index or 1) - 1) * 0.025,
-    z = DISCARD_POSITION.z,
-  }
+  local position = boardWorldPosition(BOARD_LAYOUT.discard, 1.25)
+  position.y = position.y + ((index or 1) - 1) * 0.025
+  return position
 end
 
 function moveToDiscard(guid, index)
   local card = cardObject(guid)
   if not card then return end
   card.setLock(false)
-  ensureFaceDown(card)
+  ensureFaceUp(card)
   card.setPosition(discardCardPosition(index))
   card.setLock(true)
   appendUnique(STATE.discard, guid)
@@ -1887,7 +1865,7 @@ function moveSkirmishCardsToDiscard()
     local card = cardObject(guid)
     if card then
       card.setLock(false)
-      ensureFaceDown(card)
+      ensureFaceUp(card)
       card.setPosition(discardCardPosition(index))
       card.setLock(true)
       appendUnique(STATE.discard, guid)
@@ -2080,7 +2058,7 @@ function dealDraft()
   end
   for index = 1, CONFIG.draftPoolSize do
     deck.takeObject({
-      position = DRAFT_POSITIONS[index],
+      position = boardWorldPosition(BOARD_LAYOUT.draft[index], 1.25),
       flip = true,
       smooth = false,
       callback_function = function(card)
@@ -2097,6 +2075,9 @@ end
 function prepareDraft()
   local deck = getObjectFromGUID(DECK_GUID)
   if not deck then return end
+  deck.setLock(false)
+  setFaceDown(deck)
+  deck.setPosition(boardWorldPosition(BOARD_LAYOUT.draw, 1.25))
   local quantity = deck.getQuantity()
   if quantity and quantity < CONFIG.draftPoolSize then
     recycleDiscard(deck)
@@ -2214,8 +2195,14 @@ function revealNextClashUi(player, value, id) resolveNextClash(nil, callbackColo
 function endSkirmishUi(player, value, id) endSkirmish(nil, callbackColor(player)) end
 function nextSkirmishUi(player, value, id) nextSkirmish(nil, callbackColor(player)) end
 
-function boardLocalPosition(target, y)
-  return { x = target.x / BOARD_SCALE_X, y = y, z = target.z / BOARD_SCALE_Z }
+function boardWorldPosition(target, y)
+  local board = getObjectFromGUID(BOARD_GUID)
+  if board and board.positionToWorld then
+    local position = board.positionToWorld({ x = target.x, y = 0.28, z = target.z })
+    position.y = y
+    return position
+  end
+  return { x = target.x * BOARD_LAYOUT.scale.x, y = y, z = target.z * BOARD_LAYOUT.scale.z }
 end
 
 function playerMatLocalPosition(side, target, y)
@@ -2251,44 +2238,20 @@ function installOathSlotButtons()
   end
 end
 
-function installPileSlotButtons()
-  local slots = {
-    { guid = DRAW_PILE_SLOT_GUID, label = "DRAW PILE", tooltip = "Place the draw pile here." },
-    { guid = DISCARD_SLOT_GUID, label = "DISCARD", tooltip = "Face-down discard pile." },
-  }
-  for _, data in ipairs(slots) do
-    local slot = getObjectFromGUID(data.guid)
-    if slot then
-      slot.clearButtons()
-      slot.createButton({
-        click_function = "noop",
-        function_owner = Global,
-        label = data.label,
-        position = { x = 0, y = 0.18, z = 0 },
-        rotation = { x = 0, y = 0, z = 0 },
-        width = 650,
-        height = 180,
-        font_size = 100,
-        color = { 0.12, 0.07, 0.04 },
-        font_color = { 0.9, 0.72, 0.3 },
-        tooltip = data.tooltip,
-      })
-    end
-  end
-end
-
 function installBoardButtons()
   local board = getObjectFromGUID(BOARD_GUID)
   if board then
     board.clearButtons()
     local boardSnaps = {}
-    for _, target in ipairs(DRAFT_POSITIONS) do
-      table.insert(boardSnaps, { position = boardLocalPosition(target, 0.28), rotation = { x = 0, y = 180, z = 0 } })
+    for _, target in ipairs(BOARD_LAYOUT.draft) do
+      table.insert(boardSnaps, { position = { x = target.x, y = 0.28, z = target.z }, rotation = { x = 0, y = 180, z = 0 } })
+    end
+    for _, target in ipairs({ BOARD_LAYOUT.draw, BOARD_LAYOUT.discard }) do
+      table.insert(boardSnaps, { position = { x = target.x, y = 0.28, z = target.z }, rotation = { x = 0, y = 180, z = 0 } })
     end
     board.setSnapPoints(boardSnaps)
   end
   installOathSlotButtons()
-  installPileSlotButtons()
   for _, side in ipairs({ "north", "south" }) do
     local matGuid = side == "north" and NORTH_PANEL_GUID or SOUTH_PANEL_GUID
     local mat = getObjectFromGUID(matGuid)

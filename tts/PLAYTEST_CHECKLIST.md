@@ -4,7 +4,7 @@
 
 - [ ] Two players claim different sides.
 - [ ] Host starts a War and the deck visibly shuffles.
-- [ ] Ten cards appear face-up in five clean two-card draft columns; the first board column contains the vertical draw and discard slots.
+- [ ] Ten cards appear face-up in two tight rows of five and center inside the printed wells.
 - [ ] Only the active drafter can take a card.
 - [ ] Cards enter the drafter's private hand.
 - [ ] Turns alternate until both players have five cards.
@@ -19,7 +19,7 @@
 - [ ] The result includes compact numeric strength expressions above the cards, such as `10` or `7+3+2`.
 - [ ] The winning side receives a Clash win and the loser does not.
 - [ ] The final Clash remains visible in `SKIRMISH READY` until the host presses **END SKIRMISH**.
-- [ ] The board artwork has a six-column, two-row grid: the first column is vertical draw/discard, and the other five columns hold the draft; ending the Skirmish returns all Clash tokens to the bag and moves all ten cards into one face-down, aligned discard stack; no winner card stack is created.
+- [ ] The face-down deck sits on DRAW, draft cards snap to all ten printed wells, and ended Skirmishes move all ten cards into one face-up stack on DISCARD; no winner card stack is created.
 - [ ] The Skirmish marker lands on the next Victory Track space.
 - [ ] Five Skirmish wins win the War; a 3–2 split leaves populations at 2–3.
 - [ ] Next Skirmish reverses the draft lead.

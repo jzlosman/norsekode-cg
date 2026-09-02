@@ -1,10 +1,13 @@
 import { readFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { imagePointToWorld, loadBoardLayout, renderBoardLayoutLua } from './tts-board-layout.mjs'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const cardManifest = JSON.parse(readFileSync(join(root, 'public/assets/cards/manifest.json'), 'utf8'))
+const boardLayout = loadBoardLayout()
+const drawPosition = imagePointToWorld(boardLayout, boardLayout.draw)
 
 export const DEFAULT_ASSET_BASE_URL = 'https://YOUR-ASSET-HOST/norse-kode/'
 
@@ -49,10 +52,10 @@ const panel = ({ guid, nickname, x, z, scaleX = 1, scaleZ = 1, description }) =>
 
 const board = (tableUrl) => ({
   Name: 'Custom_Tile',
-  Transform: transform(0, 1.0, 0, 8, 0.12, 6.8, 0, 0),
+  Transform: transform(0, 1.0, 0, boardLayout.boardScale.x, 0.12, boardLayout.boardScale.z, 0, 0),
   Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: true },
   Nickname: 'Norse Kode Board',
-  Description: 'Norse Kode scripted board. The Lua controller creates the draft row; formation snap points live on the player battle mats.',
+  Description: 'Norse Kode scripted board. Its measured artwork drives the draw, face-up discard, and two-row draft snap points.',
   GMNotes: 'norse-kode-board',
   CustomImage: {
     ImageURL: tableUrl,
@@ -83,18 +86,6 @@ const bloodOathSlot = ({ guid, side, index, x, z }) => ({
   Locked: true,
 })
 
-const pileSlot = ({ guid, nickname, description, x, z = 0 }) => ({
-  Name: 'BlockSquare',
-  Transform: transform(x, 1.12, z, 0.9, 0.06, 1.15, 0, 0),
-  Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: true },
-  Nickname: nickname,
-  Description: description,
-  GMNotes: 'norse-kode-pile-slot',
-  ColorDiffuse: { r: 0.12, g: 0.07, b: 0.04 },
-  GUID: guid,
-  Locked: true,
-})
-
 const deck = (cardsUrl, backUrl) => {
   const cards = cardManifest.cards.map((card, index) => ({
     Name: 'Card',
@@ -104,11 +95,14 @@ const deck = (cardsUrl, backUrl) => {
     GMNotes: card.id,
     CardID: 100 + index,
     GUID: `a${String(index + 1).padStart(5, '0')}`,
+    Grid: true,
+    Snap: true,
+    Tooltip: true,
   }))
 
   return {
     Name: 'DeckCustom',
-    Transform: transform(-6.5, 1.25, -1.75, 1, 1, 1, 180, 180),
+    Transform: transform(drawPosition.x, 1.25, drawPosition.z, 1, 1, 1, 180, 180),
     Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: false },
     Nickname: 'Norse Kode Deck',
     Description: '42-card Battle deck. Do not split the deck while the script is running.',
@@ -127,6 +121,9 @@ const deck = (cardsUrl, backUrl) => {
     },
     ContainedObjects: cards,
     GUID: 'd00001',
+    Grid: true,
+    Snap: true,
+    Tooltip: true,
   }
 }
 
@@ -259,8 +256,6 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
     bloodOathSlot({ guid: 'b00010', side: 'north', index: 2, x: 1.85, z: -11 }),
     bloodOathSlot({ guid: 'b00011', side: 'south', index: 1, x: -1.85, z: 11 }),
     bloodOathSlot({ guid: 'b00012', side: 'south', index: 2, x: 1.85, z: 11 }),
-    pileSlot({ guid: 'b00013', nickname: 'Draw Pile Slot', x: -6.5, z: -1.75, description: 'Labeled draw-pile space in the first column of the game board.' }),
-    pileSlot({ guid: 'b00014', nickname: 'Discard Slot', x: -6.5, z: 1.75, description: 'Labeled face-down discard-pile space in the first column of the game board.' }),
     deck(urls.cards, urls.back),
     clashTokenBag(urls.clashToken),
     oathMarkerBag({ guid: 'b00006', tokenGuid: 'o00001', nickname: 'Oath YES Marker Bag', description: 'Unlimited red YES markers for revealed Blood Oaths.', imageUrl: urls.oathYes }),
@@ -274,7 +269,7 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
 }
 
 export const loadSource = () => ({
-  luaScript: readFileSync(join(root, 'tts/norse-kode.lua'), 'utf8'),
+  luaScript: `${renderBoardLayoutLua(boardLayout)}\n${readFileSync(join(root, 'tts/norse-kode.lua'), 'utf8')}`,
   uiXml: readFileSync(join(root, 'tts/norse-kode-ui.xml'), 'utf8'),
 })
 
