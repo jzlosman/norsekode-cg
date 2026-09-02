@@ -1,11 +1,11 @@
 {
-  "table": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/norse-kode-table.png",
-  "playerMat": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/norse-kode-player-mat.png",
-  "clashToken": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/norse-clash-token.png",
-  "skirmishToken": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/norse-skirmish-token.png",
-  "cards": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/norse-kode-deck.png",
-  "back": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/card-back.png",
-  "manifest": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/asset-manifest.json",
-  "oathNo": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/oath-no.png",
-  "oathYes": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/11437b4c89cb2ef6a0a21051d2e20c637e394f90/tts/assets/oath-yes.png"
+  "table": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/norse-kode-table.png",
+  "playerMat": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/norse-kode-player-mat.png",
+  "clashToken": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/norse-clash-token.png",
+  "skirmishToken": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/norse-skirmish-token.png",
+  "cards": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/norse-kode-deck.png",
+  "back": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/card-back.png",
+  "manifest": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/asset-manifest.json",
+  "oathNo": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/oath-no.png",
+  "oathYes": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/oath-yes.png"
 }
