@@ -15,7 +15,7 @@ const cards = deck?.ContainedObjects ?? []
 const objectsAndCards = save.ObjectStates.flatMap((object) => [object, ...(object.ContainedObjects ?? [])])
 const guids = objectsAndCards.map((object) => object.GUID)
 const assets = ['norse-kode-table.png', 'norse-kode-battlefield-table.png', 'norse-kode-fjord-sky.png', 'norse-kode-deck.png', 'card-back.png', 'norse-kode-player-mat.png', 'norse-kode-player-mat-base.png', 'norse-clash-token.png', 'norse-skirmish-token.png', 'oath-yes.png', 'oath-no.png']
-const isUsableImageReference = (imageUrl) => typeof imageUrl === 'string' && (imageUrl.startsWith('https://') || existsSync(imageUrl))
+const isUsableImageReference = (imageUrl) => typeof imageUrl === 'string' && imageUrl.startsWith('https://')
 const pngSize = (path) => {
   const data = readFileSync(path)
   if (data.toString('ascii', 1, 4) !== 'PNG') throw new Error(`Not a PNG: ${path}`)
