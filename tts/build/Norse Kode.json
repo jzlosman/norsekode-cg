@@ -39,7 +39,7 @@
       "Description": "Norse Kode scripted board. Its measured artwork drives the draw, face-up discard, and two-row draft snap points.",
       "GMNotes": "norse-kode-board",
       "CustomImage": {
-        "ImageURL": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/norse-kode-table.png",
+        "ImageURL": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/633697257695b2a0b40c4e798d3f5fc4fe841592/tts/assets/norse-kode-table.png",
         "ImageSecondaryURL": "",
         "ImageScalar": 1,
         "WidthScale": 0,
