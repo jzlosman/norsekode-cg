@@ -16,6 +16,8 @@ const assetUrl = (baseUrl, file) => `${normalizeBaseUrl(baseUrl)}${file}`
 
 const resolveAssetUrls = (assetBaseUrl, overrides = {}) => ({
   table: overrides.table ?? assetUrl(assetBaseUrl, 'norse-kode-table.png'),
+  tableSurface: overrides.tableSurface ?? assetUrl(assetBaseUrl, 'norse-kode-battlefield-table.png'),
+  sky: overrides.sky ?? assetUrl(assetBaseUrl, 'norse-kode-fjord-sky.png'),
   cards: overrides.cards ?? assetUrl(assetBaseUrl, 'norse-kode-deck.png'),
   back: overrides.back ?? assetUrl(assetBaseUrl, 'card-back.png'),
   manifest: overrides.manifest ?? assetUrl(assetBaseUrl, 'asset-manifest.json'),
@@ -243,8 +245,10 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
   SaveName: 'Norse Kode',
   GameMode: 'Norse Kode',
   Date: '2026-09-01',
-  Table: 'Table_RPG',
-  Sky: 'Sky_Tunnel',
+  Table: 'Table_Custom',
+  TableURL: urls.tableSurface,
+  Sky: 'Sky_Museum',
+  SkyURL: urls.sky,
   Note: 'Norse Kode · Draft openly. Form in secret. Let the clash tell you who read the other line best.',
   Rules: `See tts/README.md in the source package for setup and playtest instructions. Card manifest: ${urls.manifest}`,
   LuaScript: luaScript,

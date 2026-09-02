@@ -10,6 +10,8 @@ const configuredUrls = JSON.parse(readFileSync(join(root, 'tts/asset-urls.json')
 const assetBaseUrl = process.env.NORSE_KODE_ASSET_BASE_URL
 const envUrls = {
   table: process.env.NORSE_KODE_TABLE_URL,
+  tableSurface: process.env.NORSE_KODE_TABLE_SURFACE_URL,
+  sky: process.env.NORSE_KODE_SKY_URL,
   cards: process.env.NORSE_KODE_CARDS_URL,
   back: process.env.NORSE_KODE_CARD_BACK_URL,
   manifest: process.env.NORSE_KODE_MANIFEST_URL,
@@ -21,6 +23,8 @@ const envUrls = {
 }
 const assetUrls = Object.fromEntries(Object.entries(envUrls).filter(([, value]) => value))
 const localGeneratedUrls = {
+  tableSurface: join(root, 'tts/assets/norse-kode-battlefield-table.png'),
+  sky: join(root, 'tts/assets/norse-kode-fjord-sky.png'),
   playerMat: join(root, 'tts/assets/norse-kode-player-mat.png'),
   clashToken: join(root, 'tts/assets/norse-clash-token.png'),
   skirmishToken: join(root, 'tts/assets/norse-skirmish-token.png'),

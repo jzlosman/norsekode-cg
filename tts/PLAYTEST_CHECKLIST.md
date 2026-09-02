@@ -2,6 +2,7 @@
 
 ## Happy path
 
+- [ ] The default red TTS table is replaced by the top-down frozen battlefield, and the surrounding room uses the snowy-fjord background.
 - [ ] Two players claim different sides.
 - [ ] Host starts a War and the deck visibly shuffles.
 - [ ] Ten cards appear face-up in two tight rows of five and center inside the printed wells.

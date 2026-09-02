@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { imagePointToLocal, loadBoardLayout } from './tts-board-layout.mjs'
+import { imagePointToLocal, imagePointToWorld, loadBoardLayout } from './tts-board-layout.mjs'
 import { buildTtsSave, loadSource } from './tts-save.mjs'
 
 const assetBaseUrl = 'https://example.com/norse-kode/'
@@ -61,10 +61,13 @@ describe('TTS save generation', () => {
     expect(formationAi).not.toContain('STATE.oaths[side][guid] = true')
   })
 
-  it('uses the native TTS sky-name format', () => {
-    const save = buildTtsSave({ luaScript: '-- test lua', uiXml: '<!-- test ui -->' })
+  it('uses a custom battlefield table and matching fjord background', () => {
+    const save = buildTtsSave({ assetBaseUrl, luaScript: '-- test lua', uiXml: '<!-- test ui -->' })
 
-    expect(save.Sky).toBe('Sky_Tunnel')
+    expect(save.Table).toBe('Table_Custom')
+    expect(save.TableURL).toBe(`${assetBaseUrl}norse-kode-battlefield-table.png`)
+    expect(save.Sky).toBe('Sky_Museum')
+    expect(save.SkyURL).toBe(`${assetBaseUrl}norse-kode-fjord-sky.png`)
   })
 
   it('builds one 42-card custom deck from the existing card manifest', () => {
@@ -165,8 +168,12 @@ describe('TTS save generation', () => {
       { x: 174, y: 680 }, { x: 368, y: 680 }, { x: 562, y: 680 }, { x: 756, y: 680 }, { x: 950, y: 680 },
     ])
     const loadedLayout = loadBoardLayout()
-    expect(imagePointToLocal(loadedLayout, { x: 0, y: 0 })).toEqual({ x: -1, z: -0.5 })
-    expect(imagePointToLocal(loadedLayout, { x: 1448, y: 1086 })).toEqual({ x: 1, z: 0.5 })
+    expect(imagePointToLocal(loadedLayout, { x: 0, y: 0 })).toEqual({ x: -1448 / 1086, z: -1 })
+    expect(imagePointToLocal(loadedLayout, { x: 1448, y: 1086 })).toEqual({ x: 1448 / 1086, z: 1 })
+    const firstDraft = imagePointToWorld(loadedLayout, layout.draft[0])
+    const lastDraft = imagePointToWorld(loadedLayout, layout.draft[9])
+    expect(firstDraft).toMatchObject({ x: expect.closeTo(-8.1031, 3), z: expect.closeTo(-1.7157, 3) })
+    expect(lastDraft).toMatchObject({ x: expect.closeTo(3.3297, 3), z: expect.closeTo(1.7157, 3) })
     expect(generator).toContain('board-layout.json')
     expect(generator).toContain('Inter-SemiBold.ttf')
     expect(generator).toContain('"-strip"')
@@ -283,8 +290,8 @@ describe('TTS save generation', () => {
     const cards = deck.ContainedObjects
 
     expect(names).not.toEqual(expect.arrayContaining(['Draw Pile Slot', 'Discard Slot']))
-    expect(deck.Transform.posX).toBeCloseTo(5.7901, 3)
-    expect(deck.Transform.posZ).toBeCloseTo(-0.8578, 3)
+    expect(deck.Transform.posX).toBeCloseTo(7.7201, 3)
+    expect(deck.Transform.posZ).toBeCloseTo(-1.7157, 3)
     expect(deck.Snap).toBe(true)
     expect(cards.every((card: any) => card.Snap === true)).toBe(true)
     expect(save.LuaScript).toContain('BOARD_LAYOUT.draw')
@@ -420,6 +427,8 @@ describe('TTS save generation', () => {
   it('allows Steam Cloud URLs to be baked directly into the save', () => {
     const urls = {
       table: 'https://steam.example/table',
+      tableSurface: 'https://steam.example/table-surface',
+      sky: 'https://steam.example/sky',
       cards: 'https://steam.example/cards',
       back: 'https://steam.example/back',
       manifest: 'https://steam.example/manifest',
@@ -428,6 +437,8 @@ describe('TTS save generation', () => {
     const deck = save.ObjectStates.find((object: any) => object.Name === 'DeckCustom')
 
     expect(save.ObjectStates.find((object: any) => object.Name === 'Custom_Tile').CustomImage.ImageURL).toBe(urls.table)
+    expect(save.TableURL).toBe(urls.tableSurface)
+    expect(save.SkyURL).toBe(urls.sky)
     expect(deck.CustomDeck['1'].FaceURL).toBe(urls.cards)
     expect(deck.CustomDeck['1'].BackURL).toBe(urls.back)
     expect(save.Rules).toContain(urls.manifest)

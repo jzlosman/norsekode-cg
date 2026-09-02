@@ -14,9 +14,16 @@ const skirmishBag = save.ObjectStates.find((object) => object.Nickname === 'Skir
 const cards = deck?.ContainedObjects ?? []
 const objectsAndCards = save.ObjectStates.flatMap((object) => [object, ...(object.ContainedObjects ?? [])])
 const guids = objectsAndCards.map((object) => object.GUID)
-const assets = ['norse-kode-table.png', 'norse-kode-deck.png', 'card-back.png', 'norse-kode-player-mat.png', 'norse-kode-player-mat-base.png', 'norse-clash-token.png', 'norse-skirmish-token.png', 'oath-yes.png', 'oath-no.png']
+const assets = ['norse-kode-table.png', 'norse-kode-battlefield-table.png', 'norse-kode-fjord-sky.png', 'norse-kode-deck.png', 'card-back.png', 'norse-kode-player-mat.png', 'norse-kode-player-mat-base.png', 'norse-clash-token.png', 'norse-skirmish-token.png', 'oath-yes.png', 'oath-no.png']
 const isUsableImageReference = (imageUrl) => typeof imageUrl === 'string' && (imageUrl.startsWith('https://') || existsSync(imageUrl))
+const pngSize = (path) => {
+  const data = readFileSync(path)
+  if (data.toString('ascii', 1, 4) !== 'PNG') throw new Error(`Not a PNG: ${path}`)
+  return { width: data.readUInt32BE(16), height: data.readUInt32BE(20) }
+}
 
+if (save.Table !== 'Table_Custom' || !isUsableImageReference(save.TableURL)) throw new Error('Save has no usable custom battlefield table.')
+if (save.Sky !== 'Sky_Museum' || !isUsableImageReference(save.SkyURL)) throw new Error('Save has no usable custom fjord background.')
 if (!deck) throw new Error('Save has no custom deck.')
 if (tokenBag?.Name !== 'Infinite_Bag' || tokenBag.ContainedObjects?.[0]?.Name !== 'Custom_Token') throw new Error('Save has no thematic Clash-token bag.')
 if (skirmishBag?.Name !== 'Infinite_Bag' || skirmishBag.ContainedObjects?.[0]?.Name !== 'Custom_Token') throw new Error('Save has no thematic Skirmish-token bag.')
@@ -36,7 +43,16 @@ if (deck.CustomDeck?.['1']?.NumWidth !== 7 || deck.CustomDeck?.['1']?.NumHeight 
 for (const asset of assets) {
   if (!existsSync(join(assetDir, asset))) throw new Error(`Missing generated TTS asset: ${asset}`)
 }
+for (const [asset, expected] of Object.entries({
+  'norse-kode-battlefield-table.png': { width: 2048, height: 1024 },
+  'norse-kode-fjord-sky.png': { width: 4096, height: 2048 },
+})) {
+  const actual = pngSize(join(assetDir, asset))
+  if (actual.width !== expected.width || actual.height !== expected.height) throw new Error(`Unexpected ${asset} size: ${actual.width}x${actual.height}`)
+}
 const imageUrls = [
+  save.TableURL,
+  save.SkyURL,
   save.ObjectStates.find((object) => object.Nickname === 'Norse Kode Board')?.CustomImage?.ImageURL,
   deck.CustomDeck?.['1']?.FaceURL,
   deck.CustomDeck?.['1']?.BackURL,

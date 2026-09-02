@@ -9,6 +9,8 @@ This directory contains the multiplayer tabletop version of Norse Kode. TTS is t
 - `assets/norse-kode-table-base.png` — wood-and-iron board substrate
 - `board-layout.json` — measured card wells shared by the board generator and TTS save
 - `assets/norse-kode-table.png` — original wood-and-iron board with mapped draft, draw, and face-up discard wells
+- `assets/norse-kode-battlefield-table.png` — top-down frozen battlefield texture for the Custom Rectangle table
+- `assets/norse-kode-fjord-sky.png` — 360° snowy-fjord custom background
 - `assets/norse-kode-deck.png` — 42-card, 7×6 TTS deck atlas
 - `assets/card-back.png` — card back
 - `assets/norse-kode-player-mat-base.png` — generated base art for the player mat
@@ -27,7 +29,7 @@ From the repository root:
 npm run build:tts
 ```
 
-The default save uses immutable raw GitHub URLs from `tts/asset-urls.json` for the table, cards, player mat, combat markers, and oath markers. They point to the public [`jzlosman/norsekode-cg`](https://github.com/jzlosman/norsekode-cg) repository and are pinned to an asset commit so later changes cannot silently alter an existing TTS save.
+The default save uses immutable raw GitHub URLs from `tts/asset-urls.json` for the custom battlefield table, snowy-fjord background, board, cards, player mat, combat markers, and oath markers. They point to the public [`jzlosman/norsekode-cg`](https://github.com/jzlosman/norsekode-cg) repository and are pinned to an asset commit so later changes cannot silently alter an existing TTS save.
 
 When assets change, regenerate them, commit and push that asset revision, replace the commit hash in `asset-urls.json`, rebuild the save, and commit the updated configuration. Layout changes require importing the rebuilt `Norse Kode.json`; an in-progress TTS save is not repositioned automatically. Provide temporary URL overrides with either one shared base URL:
 
@@ -39,6 +41,8 @@ or individual files:
 
 ```bash
 NORSE_KODE_TABLE_URL=https://... \\
+NORSE_KODE_TABLE_SURFACE_URL=https://... \\
+NORSE_KODE_SKY_URL=https://... \\
 NORSE_KODE_CARDS_URL=https://... \\
 NORSE_KODE_CARD_BACK_URL=https://... \\
 NORSE_KODE_MANIFEST_URL=https://... \\
@@ -50,7 +54,7 @@ NORSE_KODE_OATH_NO_URL=https://... \\
 npm run build:tts
 ```
 
-TTS uses the table, deck atlas, card-back, player mat, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
+TTS uses the custom tabletop, custom background, board, deck atlas, card-back, player mat, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
 
 ## Load in TTS
 
