@@ -361,29 +361,29 @@
       "ttsCardId": 138
     },
     {
-      "id": "skald-1",
-      "name": "Skald",
+      "id": "jarl-1",
+      "name": "Jarl",
       "category": "hero",
       "printedStrength": 11,
-      "file": "skald-1.png",
+      "file": "jarl-1.png",
       "atlasIndex": 39,
       "ttsCardId": 139
     },
     {
-      "id": "skald-2",
-      "name": "Skald",
+      "id": "jarl-2",
+      "name": "Jarl",
       "category": "hero",
       "printedStrength": 11,
-      "file": "skald-2.png",
+      "file": "jarl-2.png",
       "atlasIndex": 40,
       "ttsCardId": 140
     },
     {
-      "id": "skald-3",
-      "name": "Skald",
+      "id": "jarl-3",
+      "name": "Jarl",
       "category": "hero",
       "printedStrength": 11,
-      "file": "skald-3.png",
+      "file": "jarl-3.png",
       "atlasIndex": 41,
       "ttsCardId": 141
     }
