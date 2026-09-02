@@ -7,10 +7,11 @@ const layoutPath = join(root, 'tts/board-layout.json')
 
 export const loadBoardLayout = () => JSON.parse(readFileSync(layoutPath, 'utf8'))
 
-// TTS Type 0 Custom Tiles use the image height as two local units. The X
-// range therefore expands with the texture aspect ratio instead of staying -1..1.
+// TTS Type 0 Custom Tiles use the image height as two local units and mirror
+// the texture's horizontal axis. X therefore expands with the aspect ratio
+// and runs right-to-left, while Z keeps the image's top-to-bottom direction.
 export const imagePointToLocal = (layout, point) => ({
-  x: (2 * (point.x - layout.canvas.width / 2)) / layout.canvas.height,
+  x: (-2 * (point.x - layout.canvas.width / 2)) / layout.canvas.height,
   z: (2 * (point.y - layout.canvas.height / 2)) / layout.canvas.height,
 })
 

@@ -1,4 +1,6 @@
+import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { imagePointToLocal, imagePointToWorld, loadBoardLayout } from './tts-board-layout.mjs'
 import { buildTtsSave, loadSource } from './tts-save.mjs'
@@ -7,6 +9,12 @@ const assetBaseUrl = 'https://example.com/norse-kode/'
 const boardLayoutFile = new URL('../tts/board-layout.json', import.meta.url)
 const tableGeneratorFile = new URL('./generate-tts-table.py', import.meta.url)
 const playerMatGeneratorFile = new URL('./generate-tts-player-mat.py', import.meta.url)
+const tokenAssetFiles = [
+  'norse-clash-token.png',
+  'norse-skirmish-token.png',
+  'oath-yes.png',
+  'oath-no.png',
+].map((name) => new URL(`../tts/assets/${name}`, import.meta.url))
 
 const allContainedCards = (save: any) => {
   const deck = save.ObjectStates.find((object: any) => object.Name === 'DeckCustom')
@@ -149,7 +157,7 @@ describe('TTS save generation', () => {
     expect(save.LuaScript).toContain('card.setPosition(slotPosition(side, index))')
   })
 
-  it('uses one measured layout for two tight five-card draft rows', () => {
+  it('uses one measured layout with TTS Type 0 tile UV orientation', () => {
     expect(existsSync(boardLayoutFile)).toBe(true)
     if (!existsSync(boardLayoutFile)) return
 
@@ -168,12 +176,12 @@ describe('TTS save generation', () => {
       { x: 174, y: 680 }, { x: 368, y: 680 }, { x: 562, y: 680 }, { x: 756, y: 680 }, { x: 950, y: 680 },
     ])
     const loadedLayout = loadBoardLayout()
-    expect(imagePointToLocal(loadedLayout, { x: 0, y: 0 })).toEqual({ x: -1448 / 1086, z: -1 })
-    expect(imagePointToLocal(loadedLayout, { x: 1448, y: 1086 })).toEqual({ x: 1448 / 1086, z: 1 })
+    expect(imagePointToLocal(loadedLayout, { x: 0, y: 0 })).toEqual({ x: 1448 / 1086, z: -1 })
+    expect(imagePointToLocal(loadedLayout, { x: 1448, y: 1086 })).toEqual({ x: -1448 / 1086, z: 1 })
     const firstDraft = imagePointToWorld(loadedLayout, layout.draft[0])
     const lastDraft = imagePointToWorld(loadedLayout, layout.draft[9])
-    expect(firstDraft).toMatchObject({ x: expect.closeTo(-8.1031, 3), z: expect.closeTo(-1.7157, 3) })
-    expect(lastDraft).toMatchObject({ x: expect.closeTo(3.3297, 3), z: expect.closeTo(1.7157, 3) })
+    expect(firstDraft).toMatchObject({ x: expect.closeTo(8.1031, 3), z: expect.closeTo(-1.7157, 3) })
+    expect(lastDraft).toMatchObject({ x: expect.closeTo(-3.3297, 3), z: expect.closeTo(1.7157, 3) })
     expect(generator).toContain('board-layout.json')
     expect(generator).toContain('Inter-SemiBold.ttf')
     expect(generator).toContain('"-strip"')
@@ -210,6 +218,20 @@ describe('TTS save generation', () => {
     expect(save.LuaScript).toContain('updateControlSection("setup-controls", setup)')
     expect(save.LuaScript).toContain('updateControlSection("formation-controls", northCommitActive or southCommitActive)')
     expect(save.LuaScript).toContain('local startIndex = math.max(1, #STATE.log - 2)')
+  })
+
+  it('keeps chroma green outside every extruded token silhouette', () => {
+    for (const assetFile of tokenAssetFiles) {
+      const greenPixelFraction = Number(execFileSync('magick', [
+        fileURLToPath(assetFile),
+        '-channel', 'RGBA',
+        '-fx', '(a>0.01 && g>0.35 && g>r*1.35 && g>b*1.15)?1:0',
+        '-format', '%[fx:mean]',
+        'info:',
+      ], { encoding: 'utf8' }))
+
+      expect(greenPixelFraction, assetFile.pathname).toBe(0)
+    }
   })
 
   it('includes an unlimited clash-token bag and awards a token to each clash winner', () => {
@@ -290,7 +312,7 @@ describe('TTS save generation', () => {
     const cards = deck.ContainedObjects
 
     expect(names).not.toEqual(expect.arrayContaining(['Draw Pile Slot', 'Discard Slot']))
-    expect(deck.Transform.posX).toBeCloseTo(7.7201, 3)
+    expect(deck.Transform.posX).toBeCloseTo(-7.7201, 3)
     expect(deck.Transform.posZ).toBeCloseTo(-1.7157, 3)
     expect(deck.Snap).toBe(true)
     expect(cards.every((card: any) => card.Snap === true)).toBe(true)
