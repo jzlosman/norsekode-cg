@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 
 const scenarios = [
+  'jarl_metadata_and_legacy_aliases',
   'live_rules_baseline',
   'pure_resolver',
   'compact_entry_cache',
