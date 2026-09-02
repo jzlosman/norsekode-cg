@@ -7,10 +7,11 @@
     "berserker.png",
     "bloodsworn-emblem.png",
     "card-back-art.png",
+    "jarl.png",
+    "night-field.png",
     "ravenfeeder.png",
     "shield-maiden.png",
     "shield-wall-emblem.png",
-    "skald.png",
     "spear-emblem.png",
     "sword-emblem.png"
   ],
@@ -289,25 +290,25 @@
       "file": "shield-maiden-3.png"
     },
     {
-      "id": "skald-1",
-      "name": "Skald",
+      "id": "jarl-1",
+      "name": "Jarl",
       "category": "hero",
       "printedStrength": 11,
-      "file": "skald-1.png"
+      "file": "jarl-1.png"
     },
     {
-      "id": "skald-2",
-      "name": "Skald",
+      "id": "jarl-2",
+      "name": "Jarl",
       "category": "hero",
       "printedStrength": 11,
-      "file": "skald-2.png"
+      "file": "jarl-2.png"
     },
     {
-      "id": "skald-3",
-      "name": "Skald",
+      "id": "jarl-3",
+      "name": "Jarl",
       "category": "hero",
       "printedStrength": 11,
-      "file": "skald-3.png"
+      "file": "jarl-3.png"
     }
   ]
 }

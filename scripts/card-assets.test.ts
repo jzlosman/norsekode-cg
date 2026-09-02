@@ -6,6 +6,8 @@ import { BATTLE_CARDS } from '../src/game/cards'
 const cardAssetsDirectory = new URL('../public/assets/cards/', import.meta.url)
 const fontsDirectory = new URL('../public/assets/fonts/', import.meta.url)
 const brandDirectory = new URL('../public/assets/brand/', import.meta.url)
+const cardManifest = new URL('manifest.json', cardAssetsDirectory)
+const generatorSource = new URL('./generate-card-assets.mjs', import.meta.url)
 
 const approvedBrandSourceHashes = new Map<URL, string>([
   [new URL('Bravyn Runeskald.ttf', fontsDirectory), 'fba2a50213023eafc014ed772a96f85a47ae4a0465371515b372f599ecc21864'],
@@ -32,6 +34,32 @@ function expectValidSfntFont(file: URL) {
 }
 
 describe('battle card assets', () => {
+  it('generates the branded 42-card manifest with Jarl in the final Hero slot', () => {
+    const manifest = JSON.parse(readFileSync(cardManifest, 'utf8'))
+    const ids = manifest.cards.map((card: { id: string }) => card.id)
+
+    expect(manifest).toMatchObject({ width: 750, height: 1050, cardBack: 'card-back.png' })
+    expect(ids).toHaveLength(42)
+    expect(ids.slice(-12)).toEqual([
+      'ravenfeeder-1', 'ravenfeeder-2', 'ravenfeeder-3',
+      'berserker-1', 'berserker-2', 'berserker-3',
+      'shield-maiden-1', 'shield-maiden-2', 'shield-maiden-3',
+      'jarl-1', 'jarl-2', 'jarl-3',
+    ])
+    expect(ids.some((id: string) => id.startsWith('skald-'))).toBe(false)
+  })
+
+  it('declares the approved Night and Saga generator language', () => {
+    const source = readFileSync(generatorSource, 'utf8')
+
+    for (const token of ['#1E2227', '#0D0F12', '#18303C', '#EAE2D0', '#46E3A8', '#FF7A3D', '#A970FF']) {
+      expect(source).toContain(token)
+    }
+    for (const phrase of ['Bravyn Runeskald.ttf', 'Inter-SemiBold.ttf', 'night-field.png', 'JOIN WITH NEXT WARRIOR', 'BREAK ANY CHAIN BONUSES', 'LEAD BY EXAMPLE']) {
+      expect(source).toContain(phrase)
+    }
+  })
+
   it('has a PNG asset for every battle card ID', () => {
     const missingAssetIds = BATTLE_CARDS
       .filter((card) => !existsSync(new URL(`${card.id}.png`, cardAssetsDirectory)))

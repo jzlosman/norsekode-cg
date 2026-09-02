@@ -1,38 +1,39 @@
-import { execFileSync, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
-import { dirname, join, basename } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { spawnSync } from 'node:child_process'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const artDir = join(root, 'public/assets/card-art')
+const fontDir = join(root, 'public/assets/fonts')
 const outputDir = join(root, 'public/assets/cards')
 const tempDir = join(root, '.tmp-card-assets')
+
 const width = 750
 const height = 1050
-const paper = '#f4ead7'
-const ink = '#241d19'
-const mutedInk = '#6f5e4d'
-const accentColors = {
-  axe: '#963c34',
-  sword: '#466a79',
-  spear: '#aa7d32',
-  none: '#5e4d6e',
+const COLORS = {
+  charcoal: '#1E2227',
+  obsidian: '#0D0F12',
+  fjord: '#18303C',
+  bone: '#EAE2D0',
+  aurora: '#46E3A8',
+  axe: '#FF7A3D',
+  sword: '#46E3A8',
+  spear: '#A970FF',
 }
-const paperTints = {
-  axe: '#f2e0da',
-  sword: '#e1ebed',
-  spear: '#f3e8cf',
-  none: '#ebe3ef',
-}
+const RANK_FONT = join(fontDir, 'Bravyn Runeskald.ttf')
+const LABEL_FONT = join(fontDir, 'Inter-SemiBold.ttf')
 
 mkdirSync(outputDir, { recursive: true })
 for (const file of readdirSync(outputDir)) {
   if (file.endsWith('.png') || file === 'manifest.json') unlinkSync(join(outputDir, file))
 }
+rmSync(tempDir, { recursive: true, force: true })
 mkdirSync(tempDir, { recursive: true })
 
-const escapeXml = (value) => value
+const escapeXml = (value) => String(value)
   .replaceAll('&', '&amp;')
   .replaceAll('<', '&lt;')
   .replaceAll('>', '&gt;')
@@ -40,136 +41,210 @@ const escapeXml = (value) => value
   .replaceAll("'", '&apos;')
 
 const pngData = (filePath) => `data:image/png;base64,${readFileSync(filePath).toString('base64')}`
-
-const removeFlatBackground = (fileName, opacity = 1) => {
-  const input = join(artDir, fileName)
-  const output = join(tempDir, `transparent-${fileName}`)
-  const finalOutput = opacity === 1 ? output : join(tempDir, `fade-${opacity}-${fileName}`)
-  const background = execFileSync('magick', [input, '-format', '%[pixel:p{0,0}]', 'info:'], { encoding: 'utf8' }).trim()
-  const result = spawnSync('magick', [
-    input,
-    '-alpha', 'on',
-    '-bordercolor', background,
-    '-border', '1',
-    '-fuzz', '8%',
-    '-fill', 'none',
-    '-draw', 'color 1,1 floodfill',
-    '-shave', '1x1',
-    output,
-  ], { encoding: 'utf8' })
-  if (result.status !== 0) {
-    throw new Error(`Could not remove background from ${fileName}: ${result.stderr}`)
-  }
-  if (opacity !== 1) {
-    const faded = spawnSync('magick', [output, '-channel', 'A', '-evaluate', 'multiply', String(opacity), '+channel', finalOutput], { encoding: 'utf8' })
-    if (faded.status !== 0) throw new Error(`Could not fade ${fileName}: ${faded.stderr}`)
-  }
-  return finalOutput
-}
+const image = (href, x, y, w, h, extra = '') => `<image href="${href}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" ${extra}/>`
+const line = (x1, y1, x2, y2, color, strokeWidth = 2, extra = '') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${strokeWidth}" ${extra}/>`
 
 const art = {
-  axe: pngData(removeFlatBackground('axe-emblem.png')),
-  sword: pngData(removeFlatBackground('sword-emblem.png')),
-  spear: pngData(removeFlatBackground('spear-emblem.png')),
-  bloodsworn: pngData(removeFlatBackground('bloodsworn-emblem.png')),
-  shield_wall: pngData(removeFlatBackground('shield-wall-emblem.png')),
-  ravenfeeder: pngData(removeFlatBackground('ravenfeeder.png')),
-  berserker: pngData(removeFlatBackground('berserker.png')),
-  shield_maiden: pngData(removeFlatBackground('shield-maiden.png')),
-  skald: pngData(removeFlatBackground('skald.png')),
+  night: pngData(join(artDir, 'night-field.png')),
+  ravenfeeder: pngData(join(artDir, 'ravenfeeder.png')),
+  berserker: pngData(join(artDir, 'berserker.png')),
+  shieldMaiden: pngData(join(artDir, 'shield-maiden.png')),
+  jarl: pngData(join(artDir, 'jarl.png')),
   cardBack: pngData(join(artDir, 'card-back-art.png')),
 }
 
-const image = (href, x, y, w, h, extra = '') => `<image href="${href}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" ${extra}/>`
-const withDefaultFill = (defaultFill, extra) => /\bfill=/.test(extra) ? '' : `fill="${defaultFill}"`
-const text = (content, x, y, size, extra = '') => `<text x="${x}" y="${y}" font-family="Georgia, Times New Roman, serif" font-size="${size}px" ${withDefaultFill(ink, extra)} ${extra}>${escapeXml(content)}</text>`
-const sansText = (content, x, y, size, extra = '') => `<text x="${x}" y="${y}" font-family="Arial, Helvetica, sans-serif" font-size="${size}px" ${withDefaultFill(mutedInk, extra)} ${extra}>${escapeXml(content)}</text>`
-const line = (x1, y1, x2, y2, color, strokeWidth = 2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${strokeWidth}"/>`
+const textCache = new Map()
+const rasterText = (content, { w, h, size, color, font = LABEL_FONT, kerning = 0 }) => {
+  const key = createHash('sha1').update(JSON.stringify({ content, w, h, size, color, font, kerning })).digest('hex')
+  if (!textCache.has(key)) {
+    const output = join(tempDir, `text-${key}.png`)
+    const result = spawnSync('magick', [
+      '-size', `${w}x${h}`,
+      'xc:none',
+      '-font', font,
+      '-pointsize', String(size),
+      '-kerning', String(kerning),
+      '-fill', color,
+      '-gravity', 'center',
+      '-annotate', '+0+0', content,
+      '-define', 'png:color-type=6',
+      output,
+    ], { encoding: 'utf8' })
+    if (result.status !== 0) throw new Error(`Could not render text "${content}": ${result.stderr}`)
+    textCache.set(key, pngData(output))
+  }
+  return textCache.get(key)
+}
 
-const cardFrame = (accent, paperFill = paper) => `
+const textImage = (content, x, y, options) => image(rasterText(content, options), x - options.w / 2, y - options.h / 2, options.w, options.h)
+const rotated = (content) => `<g transform="matrix(-1 0 0 -1 ${width} ${height})">${content}</g>`
+
+const glowDefs = (accent) => `
   <defs>
     <clipPath id="cardClip"><rect x="10" y="10" width="730" height="1030" rx="30"/></clipPath>
+    <filter id="accentGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
   </defs>
-  <g clip-path="url(#cardClip)">
-    <rect width="750" height="1050" fill="${paperFill}"/>
-    <rect x="17" y="17" width="716" height="1016" rx="26" fill="none" stroke="${accent}" stroke-width="6"/>
-    <rect x="31" y="31" width="688" height="988" rx="18" fill="none" stroke="${ink}" stroke-width="2"/>
-    <path d="M58 145V58h87 M692 145V58h-87 M58 905v87h87 M692 905v87h-87" fill="none" stroke="${accent}" stroke-width="4"/>
-    <path d="M72 117l18-18 18 18-18 18z M678 117l-18-18-18 18 18 18z M72 933l18 18 18-18-18-18z M678 933l-18 18-18-18 18-18z" fill="none" stroke="${accent}" stroke-width="2"/>
-  </g>
-`
+  <style>.accent{stroke:${accent};fill:none;stroke-linejoin:miter;stroke-linecap:square}</style>`
 
-const corner = ({ rank, weapon, accent, special, flipped = false }) => {
-  const markY = 20
-  const specialY = 82
-  const mark = weapon !== 'none'
-    ? image(art[weapon], -29, markY, 58, 58)
-    : `<circle cx="0" cy="${markY + 28}" r="21" fill="none" stroke="${accent}" stroke-width="2"/><path d="M0 ${markY + 10}l4 13 13 5-13 4-4 14-4-14-13-4 13-5z" fill="none" stroke="${accent}" stroke-width="2"/>`
-  const specialMark = special ? image(art[special], -17, specialY, 34, 34) : ''
-  const transform = flipped ? 'matrix(-1 0 0 -1 750 1050) translate(100 111)' : 'translate(100 111)'
-  return `<g transform="${transform}">
-    ${text(String(rank), 0, 0, 84, `font-weight="700" text-anchor="middle" fill="${accent}"`)}
-    ${mark}
-    ${specialMark}
+const nkMark = (x, y, markHeight, color, opacity = 1) => {
+  const scale = markHeight / 1874
+  const markWidth = 1085 * scale
+  return `<g transform="translate(${x - markWidth / 2} ${y - markHeight / 2}) scale(${scale})" fill="${color}" stroke="${color}" stroke-width="38" stroke-linejoin="miter" opacity="${opacity}">
+    <polygon points="122.65,407.02 214.20,499.35 214.31,1106.37 122.68,1200.09"/>
+    <polygon points="122.65,407.02 971.70,1263.68 971.56,1397.50 122.65,540.84"/>
+    <polygon points="467.52,82.56 559.97,172.14 559.80,1738.70 467.31,1643.41"/>
+    <polygon points="559.97,782.77 941.44,407.67 941.55,541.48 559.97,916.58"/>
   </g>`
 }
 
-const pipImage = (href, x, y, size) => image(href, x - size / 2, y - size / 2, size, size)
+const frameRails = (primary, accent) => `
+  <rect x="23" y="23" width="704" height="3" fill="${primary}"/><rect x="23" y="1024" width="704" height="3" fill="${primary}"/>
+  <rect x="23" y="23" width="3" height="1004" fill="${primary}"/><rect x="724" y="23" width="3" height="1004" fill="${primary}"/>
+  <rect x="37" y="37" width="676" height="2" fill="${accent}"/><rect x="37" y="1011" width="676" height="2" fill="${accent}"/>
+  <rect x="37" y="37" width="2" height="976" fill="${accent}"/><rect x="711" y="37" width="2" height="976" fill="${accent}"/>`
+
+const angularCorners = (color) => `
+  <rect x="55" y="55" width="88" height="3" fill="${color}"/><rect x="55" y="55" width="3" height="88" fill="${color}"/>
+  <rect x="607" y="55" width="88" height="3" fill="${color}"/><rect x="692" y="55" width="3" height="88" fill="${color}"/>
+  <rect x="55" y="992" width="88" height="3" fill="${color}"/><rect x="55" y="907" width="3" height="88" fill="${color}"/>
+  <rect x="607" y="992" width="88" height="3" fill="${color}"/><rect x="692" y="907" width="3" height="88" fill="${color}"/>`
+
+const nightFrame = (accent, segmented = false) => `${glowDefs(accent)}
+  <g clip-path="url(#cardClip)">
+    <rect width="750" height="1050" fill="${COLORS.obsidian}"/>
+    ${image(art.night, 0, 0, 750, 1050, 'opacity="0.72"')}
+    <rect width="750" height="1050" fill="${COLORS.fjord}" opacity="0.14"/>
+    ${frameRails(COLORS.bone, accent)}
+    ${segmented ? `<rect x="185" y="51" width="380" height="2" fill="${accent}"/><rect x="185" y="997" width="380" height="2" fill="${accent}"/><rect x="51" y="220" width="2" height="610" fill="${accent}"/><rect x="697" y="220" width="2" height="610" fill="${accent}"/>` : ''}
+    ${angularCorners(accent)}
+    ${nkMark(375, 67, 34, COLORS.bone, 0.8)}
+    ${nkMark(375, 983, 34, COLORS.bone, 0.8)}
+  </g>`
+
+const sagaFrame = () => `${glowDefs(COLORS.aurora)}
+  <g clip-path="url(#cardClip)">
+    <rect width="750" height="1050" fill="${COLORS.bone}"/>
+    ${frameRails(COLORS.charcoal, COLORS.fjord)}
+    <rect x="175" y="45" width="400" height="1" fill="${COLORS.aurora}"/><rect x="175" y="1004" width="400" height="1" fill="${COLORS.aurora}"/>
+    ${angularCorners(COLORS.charcoal)}
+    ${nkMark(375, 67, 34, COLORS.aurora, 0.9)}
+    ${nkMark(375, 983, 34, COLORS.aurora, 0.9)}
+  </g>`
+
+const rankAdjustments = {
+  '1': { size: 100, dx: -2 },
+  '4': { size: 94, dx: 1 },
+  '6': { size: 90, dx: 0 },
+  '9': { size: 90, dx: 0 },
+  '10': { size: 80, dx: 2 },
+  S: { size: 92, dx: 0 },
+  B: { size: 88, dx: 0 },
+  R: { size: 88, dx: 0 },
+  J: { size: 92, dx: 0 },
+}
+
+const pipGlyph = (weapon, x, y, size, accent, opacity = 1) => {
+  const s = size / 100
+  const common = `stroke-linejoin="miter" stroke-linecap="square" opacity="${opacity}"`
+  const glow = `<circle cx="0" cy="0" r="37" fill="${accent}" opacity="0.08" filter="url(#accentGlow)"/>`
+  let shape
+  if (weapon === 'axe') {
+    shape = `<path d="M0 -43V44 M0 -30L-15 -40L-42 -31L-34 -7L-13 1L0 -6L13 1L34 -7L42 -31L15 -40Z" fill="none" stroke="${accent}" stroke-width="5" ${common}/><path d="M0 -31V43 M-13 1H13" fill="none" stroke="${COLORS.bone}" stroke-width="5" ${common}/>`
+  } else if (weapon === 'sword') {
+    shape = `<path d="M0 -47L12 -31L5 25H-5L-12 -31Z" fill="none" stroke="${accent}" stroke-width="5" ${common}/><path d="M-24 24H24 M-9 24L-7 42H7L9 24" fill="none" stroke="${COLORS.bone}" stroke-width="5" ${common}/><path d="M0 -38V21" stroke="${COLORS.bone}" stroke-width="3" ${common}/>`
+  } else {
+    shape = `<path d="M0 -49L15 -29L0 -11L-15 -29Z" fill="none" stroke="${accent}" stroke-width="5" ${common}/><path d="M0 -12V45 M-11 15L0 5L11 15" fill="none" stroke="${COLORS.bone}" stroke-width="5" ${common}/>`
+  }
+  return `<g transform="translate(${x} ${y}) scale(${s})">${glow}${shape}</g>`
+}
+
+const corner = ({ rank, weapon, accent, flipped = false, hero = false }) => {
+  const value = String(rank)
+  const adjustment = rankAdjustments[value] || { size: 92, dx: 0 }
+  const rankImage = textImage(value, 92 + adjustment.dx, 102, {
+    w: value === '10' ? 132 : 104,
+    h: 118,
+    size: adjustment.size,
+    color: hero ? COLORS.charcoal : accent,
+    font: RANK_FONT,
+  })
+  const mark = hero
+    ? nkMark(92, 170, 36, COLORS.fjord, 0.9)
+    : pipGlyph(weapon, 92, 170, 53, accent, 1)
+  const group = `<g>${rankImage}${mark}</g>`
+  return flipped ? rotated(group) : group
+}
 
 const pipPositions = {
   1: [[375, 525]],
-  2: [[375, 325], [375, 725]],
+  2: [[375, 330], [375, 720]],
   3: [[375, 300], [375, 525], [375, 750]],
-  4: [[255, 350], [495, 350], [255, 700], [495, 700]],
-  5: [[255, 325], [495, 325], [375, 525], [255, 725], [495, 725]],
-  6: [[255, 310], [495, 310], [255, 525], [495, 525], [255, 740], [495, 740]],
-  7: [[255, 300], [495, 300], [255, 525], [375, 525], [495, 525], [255, 750], [495, 750]],
-  8: [[255, 285], [495, 285], [255, 430], [495, 430], [255, 620], [495, 620], [255, 765], [495, 765]],
-  9: [[255, 285], [375, 285], [495, 285], [255, 525], [375, 525], [495, 525], [255, 765], [375, 765], [495, 765]],
-  10: [[250, 275], [500, 275], [250, 400], [500, 400], [250, 525], [500, 525], [250, 650], [500, 650], [250, 775], [500, 775]],
+  4: [[255, 345], [495, 345], [255, 705], [495, 705]],
+  5: [[255, 315], [495, 315], [375, 525], [255, 735], [495, 735]],
+  6: [[255, 300], [495, 300], [255, 525], [495, 525], [255, 750], [495, 750]],
+  7: [[255, 285], [495, 285], [255, 505], [375, 525], [495, 505], [255, 765], [495, 765]],
+  8: [[255, 275], [495, 275], [255, 435], [495, 435], [255, 615], [495, 615], [255, 775], [495, 775]],
+  9: [[245, 275], [375, 275], [505, 275], [245, 525], [375, 525], [505, 525], [245, 775], [375, 775], [505, 775]],
+  10: [[250, 260], [500, 260], [250, 390], [500, 390], [250, 525], [500, 525], [250, 660], [500, 660], [250, 790], [500, 790]],
 }
 
-const standardCardSvg = ({ weapon, rank, category, name }) => {
-  const accent = accentColors[weapon]
+const specialRail = (title, rule, accent) => {
+  const content = `<g>
+    ${line(220, 202, 530, 202, accent, 1.5, 'opacity="0.8"')}
+    ${textImage(title, 375, 222, { w: 360, h: 30, size: 17, color: COLORS.bone, kerning: 4 })}
+    ${textImage(rule, 375, 249, { w: 430, h: 25, size: 11, color: accent, kerning: 2 })}
+  </g>`
+  return `${content}${rotated(content)}`
+}
+
+const standardCardSvg = ({ weapon, rank, category }) => {
+  const accent = COLORS[weapon]
   const isBloodsworn = category === 'bloodsworn'
   const isShieldWall = category === 'shield_wall'
-  const pipArt = art[weapon]
-  const pips = pipPositions[rank].map(([x, y]) => pipImage(pipArt, x, y, 140)).join('')
-  const special = isBloodsworn ? 'bloodsworn' : isShieldWall ? 'shield_wall' : undefined
-  const specialLabel = isBloodsworn ? 'BLOODSWORN' : isShieldWall ? 'SHIELD WALL' : weapon.toUpperCase()
+  const pips = pipPositions[rank].map(([x, y]) => pipGlyph(weapon, x, y, rank >= 8 ? 66 : 76, accent)).join('')
+  const suitLabel = textImage(weapon.toUpperCase(), 375, 955, { w: 220, h: 28, size: 12, color: COLORS.bone, kerning: 6 })
+  const special = isBloodsworn
+    ? `${specialRail('BLOODSWORN', 'JOIN WITH NEXT WARRIOR', accent)}
+       <g><polygon points="375,458 432,525 375,592 318,525" fill="${accent}"/><polygon points="375,468 423,525 375,582 327,525" fill="${COLORS.obsidian}"/><polygon points="375,485 409,525 375,565 341,525" fill="${COLORS.bone}"/><polygon points="375,494 401,525 375,556 349,525" fill="${COLORS.obsidian}"/><rect x="295" y="523" width="32" height="4" fill="${accent}"/><rect x="423" y="523" width="32" height="4" fill="${accent}"/></g>`
+    : isShieldWall
+      ? `${specialRail('SHIELD WALL', 'BREAK ANY CHAIN BONUSES', accent)}
+         <rect x="185" y="279" width="380" height="3" fill="${accent}"/><rect x="185" y="769" width="380" height="3" fill="${accent}"/><rect x="185" y="279" width="3" height="493" fill="${accent}"/><rect x="562" y="279" width="3" height="493" fill="${accent}"/>
+         <rect x="205" y="504" width="340" height="2" fill="${COLORS.bone}"/><rect x="205" y="544" width="340" height="2" fill="${COLORS.bone}"/>`
+      : suitLabel
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    ${cardFrame(accent, paperTints[weapon])}
+    ${nightFrame(accent, isShieldWall)}
     <g clip-path="url(#cardClip)">
-      ${corner({ rank, weapon, accent, special })}
-      ${corner({ rank, weapon, accent, special, flipped: true })}
+      ${corner({ rank, weapon, accent })}
+      ${corner({ rank, weapon, accent, flipped: true })}
       ${pips}
-      ${isBloodsworn || isShieldWall ? `<g>${sansText(`${specialLabel}  ·  ${weapon.toUpperCase()}`, 375, 235, 12, `text-anchor="middle" font-weight="700" letter-spacing="4" fill="${accent}"`)}<g transform="matrix(-1 0 0 -1 750 1050)">${sansText(`${specialLabel}  ·  ${weapon.toUpperCase()}`, 375, 235, 12, `text-anchor="middle" font-weight="700" letter-spacing="4" fill="${accent}"`)}</g></g>` : sansText(specialLabel, 375, 976, 12, `text-anchor="middle" font-weight="700" letter-spacing="4" fill="${accent}"`)}
+      ${special}
     </g>
   </svg>`
 }
 
 const heroDetails = {
-  ravenfeeder: { label: 'RAVENFEEDER', ability: 'UNSUITED  ·  12 STRENGTH', artKey: 'ravenfeeder' },
-  berserker: { label: 'BERSERKER', ability: 'WIN THIS CLASH  ·  LOSE THE NEXT', artKey: 'berserker' },
-  'shield-maiden': { label: 'SHIELD MAIDEN', ability: 'PRIMARY  ·  + PREVIOUS FINAL DEFEAT MARGIN', artKey: 'shield_maiden' },
-  skald: { label: 'SKALD', ability: 'CONSUMED OK  ·  NEXT +3 WIN / +2 TIE / +1 LOSS', artKey: 'skald' },
+  ravenfeeder: { rank: 'R', label: 'RAVENFEEDER', ability: 'UNSUITED  ·  12 STRENGTH', artKey: 'ravenfeeder' },
+  berserker: { rank: 'B', label: 'BERSERKER', ability: 'WIN THIS CLASH  ·  LOSE THE NEXT', artKey: 'berserker' },
+  'shield-maiden': { rank: 'S', label: 'SHIELD MAIDEN', ability: 'VENGEANCE  ·  GAIN THE PREVIOUS DEFEAT MARGIN', artKey: 'shieldMaiden' },
+  jarl: { rank: 'J', label: 'JARL', ability: 'LEAD BY EXAMPLE  ·  NEXT +3 WIN / +2 TIE / +1 LOSS', artKey: 'jarl' },
 }
 
-const heroCardSvg = ({ id, name, strength }) => {
+const heroCardSvg = ({ id }) => {
   const hero = heroDetails[id]
-  const accent = id === 'berserker' ? accentColors.axe : id === 'ravenfeeder' ? accentColors.sword : id === 'shield-maiden' ? accentColors.spear : accentColors.none
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    ${cardFrame(accent, paperTints.none)}
+    ${sagaFrame()}
     <g clip-path="url(#cardClip)">
-      ${corner({ rank: strength, weapon: 'none', accent })}
-      ${corner({ rank: strength, weapon: 'none', accent, flipped: true })}
-      ${sansText('HERO', 375, 78, 12, `text-anchor="middle" font-weight="700" letter-spacing="5" fill="${accent}"`)}
-      ${line(298, 105, 452, 105, accent, 1)}
-      <rect x="69" y="178" width="612" height="638" rx="12" fill="${paperTints.none}" stroke="${accent}" stroke-width="2"/>
-      ${image(art[hero.artKey], 82, 188, 586, 615)}
-      ${text(hero.label, 375, 920, hero.label.length > 13 ? 19 : 23, `text-anchor="middle" font-weight="700" letter-spacing="2"`)}
-      ${sansText(hero.ability, 375, 950, 10, `text-anchor="middle" font-weight="700" letter-spacing="1.5" fill="${accent}"`)}
-      ${sansText('THE SAGA REMEMBERS', 375, 982, 9, `text-anchor="middle" font-weight="700" letter-spacing="3" fill="${mutedInk}"`)}
+      ${corner({ rank: hero.rank, accent: COLORS.charcoal, hero: true })}
+      ${corner({ rank: hero.rank, accent: COLORS.charcoal, hero: true, flipped: true })}
+      ${image(art[hero.artKey], 73, 118, 604, 754)}
+      <rect x="120" y="850" width="510" height="112" rx="8" fill="${COLORS.bone}" opacity="0.93"/>
+      ${line(245, 869, 505, 869, COLORS.fjord, 1.5)}
+      ${textImage(hero.label, 375, 895, { w: 500, h: 42, size: hero.label.length > 12 ? 25 : 29, color: COLORS.charcoal, kerning: 5 })}
+      ${textImage(hero.ability, 375, 934, { w: 590, h: 30, size: hero.ability.length > 42 ? 10 : 12, color: COLORS.fjord, kerning: 1.5 })}
+      ${line(280, 959, 470, 959, COLORS.aurora, 1.5, 'opacity="0.8"')}
     </g>
   </svg>`
 }
@@ -177,9 +252,8 @@ const heroCardSvg = ({ id, name, strength }) => {
 const cardBackSvg = () => `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs><clipPath id="backClip"><rect x="10" y="10" width="730" height="1030" rx="30"/></clipPath></defs>
   <g clip-path="url(#backClip)">
-    <rect width="750" height="1050" fill="#241b17"/>
+    <rect width="750" height="1050" fill="${COLORS.obsidian}"/>
     ${image(art.cardBack, 10, 10, 730, 1030)}
-    <rect x="19" y="19" width="712" height="1012" rx="24" fill="none" stroke="#f0ddbb" stroke-width="3"/>
   </g>
 </svg>`
 
@@ -198,7 +272,7 @@ for (const weapon of ['axe', 'sword', 'spear']) {
     const plural = weapon === 'sword' ? 'Swords' : `${weapon[0].toUpperCase()}${weapon.slice(1)}s`
     const name = rank === 5 ? `Bloodsworn of ${plural}` : rank === 6 ? `${weapon[0].toUpperCase()}${weapon.slice(1)} Shield Wall` : `${weapon[0].toUpperCase()}${weapon.slice(1)} ${rank}`
     const id = `${weapon}-${rank}`
-    writePng(id, standardCardSvg({ weapon, rank, category, name }))
+    writePng(id, standardCardSvg({ weapon, rank, category }))
     cards.push({ id, name, category, printedStrength: rank, file: `${id}.png` })
   }
 }
@@ -207,7 +281,7 @@ const heroes = [
   { id: 'ravenfeeder', name: 'Ravenfeeder', strength: 12 },
   { id: 'berserker', name: 'Berserker', strength: 11 },
   { id: 'shield-maiden', name: 'Shield Maiden', strength: 11 },
-  { id: 'skald', name: 'Skald', strength: 11 },
+  { id: 'jarl', name: 'Jarl', strength: 11 },
 ]
 for (const hero of heroes) {
   for (let copy = 1; copy <= 3; copy += 1) {
@@ -216,7 +290,14 @@ for (const hero of heroes) {
     cards.push({ id, name: hero.name, category: 'hero', printedStrength: hero.strength, file: `${id}.png` })
   }
 }
+
 writePng('card-back', cardBackSvg())
-writeFileSync(join(outputDir, 'manifest.json'), JSON.stringify({ width, height, cardBack: 'card-back.png', generatedAssets: readdirSync(artDir).sort(), cards }, null, 2) + '\n')
+writeFileSync(join(outputDir, 'manifest.json'), `${JSON.stringify({
+  width,
+  height,
+  cardBack: 'card-back.png',
+  generatedAssets: readdirSync(artDir).sort(),
+  cards,
+}, null, 2)}\n`)
 rmSync(tempDir, { recursive: true, force: true })
-console.log(`Generated ${cards.length} card fronts and ${join(outputDir, 'card-back.png')}`)
+console.log(`Generated ${cards.length} branded card fronts and ${join(outputDir, 'card-back.png')}`)
