@@ -76,7 +76,7 @@ const board = (tableUrl) => ({
 
 const bloodOathSlot = ({ guid, side, index, x, z }) => ({
   Name: 'BlockSquare',
-  Transform: transform(x, 1.2, z, 0.55, 0.08, 0.35, side === 'north' ? 180 : 0, 0),
+  Transform: transform(x, 1.3, z, 0.55, 0.08, 0.35, side === 'north' ? 180 : 0, 0),
   Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: true },
   Nickname: `Blood Oath Slot ${side} ${index}`,
   Description: `Placeholder for ${side} player Blood Oath marker ${index}.`,
@@ -155,7 +155,7 @@ const customToken = ({ guid, nickname, description, imageUrl }) => ({
 
 const playerMat = ({ guid, nickname, z, rotationY, description, imageUrl }) => ({
   Name: 'Custom_Tile',
-  Transform: transform(0, 1.0, z, 3.3, 0.12, 3.6, rotationY, 0),
+  Transform: transform(0, 1.1, z, 3.3, 0.12, 3.6, rotationY, 0),
   Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: true },
   Nickname: nickname,
   Description: description,
@@ -252,18 +252,18 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
   XmlUI: uiXml,
   ObjectStates: [
     board(urls.table),
-    bloodOathSlot({ guid: 'b00009', side: 'north', index: 1, x: -1.85, z: -11 }),
-    bloodOathSlot({ guid: 'b00010', side: 'north', index: 2, x: 1.85, z: -11 }),
-    bloodOathSlot({ guid: 'b00011', side: 'south', index: 1, x: -1.85, z: 11 }),
-    bloodOathSlot({ guid: 'b00012', side: 'south', index: 2, x: 1.85, z: 11 }),
+    bloodOathSlot({ guid: 'b00009', side: 'north', index: 1, x: -1.85, z: -13.8 }),
+    bloodOathSlot({ guid: 'b00010', side: 'north', index: 2, x: 1.85, z: -13.8 }),
+    bloodOathSlot({ guid: 'b00011', side: 'south', index: 1, x: -1.85, z: 13.8 }),
+    bloodOathSlot({ guid: 'b00012', side: 'south', index: 2, x: 1.85, z: 13.8 }),
     deck(urls.cards, urls.back),
     clashTokenBag(urls.clashToken),
     oathMarkerBag({ guid: 'b00006', tokenGuid: 'o00001', nickname: 'Oath YES Marker Bag', description: 'Unlimited red YES markers for revealed Blood Oaths.', imageUrl: urls.oathYes }),
     oathMarkerBag({ guid: 'b00007', tokenGuid: 'o00002', nickname: 'Oath NO Marker Bag', description: 'Unlimited red NO markers for revealed Blood Oaths.', imageUrl: urls.oathNo }),
     skirmishTokenBag(urls.skirmishToken),
-    playerMat({ guid: 'b00002', nickname: 'North Player Mat', z: -8.4, rotationY: 180, imageUrl: urls.playerMat, description: 'North battle mat with five card-sized formation slots, two ordered Blood Oath slots, five Clash marker spaces, and a five-win Victory Track.' }),
-    playerMat({ guid: 'b00003', nickname: 'South Player Mat', z: 8.4, rotationY: 0, imageUrl: urls.playerMat, description: 'South battle mat with five card-sized formation slots, two ordered Blood Oath slots, five Clash marker spaces, and a five-win Victory Track.' }),
-    panel({ guid: 'b00004', nickname: 'Host Controls', x: 0, z: 13.0, scaleX: 4.8, scaleZ: 0.55, description: 'Host-only phase controls for setup, oath reveal, clash reveal, ending a Skirmish, and starting the next one.' }),
+    playerMat({ guid: 'b00002', nickname: 'North Player Mat', z: -11.2, rotationY: 180, imageUrl: urls.playerMat, description: 'North battle mat with five card-sized formation slots, two ordered Blood Oath slots, five Clash marker spaces, and a five-win Victory Track.' }),
+    playerMat({ guid: 'b00003', nickname: 'South Player Mat', z: 11.2, rotationY: 0, imageUrl: urls.playerMat, description: 'South battle mat with five card-sized formation slots, two ordered Blood Oath slots, five Clash marker spaces, and a five-win Victory Track.' }),
+    panel({ guid: 'b00004', nickname: 'Host Controls', x: 0, z: 16.0, scaleX: 4.8, scaleZ: 0.55, description: 'Host-only phase controls for setup, oath reveal, clash reveal, ending a Skirmish, and starting the next one.' }),
   ],
   }
 }

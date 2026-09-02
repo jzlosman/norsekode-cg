@@ -10,6 +10,7 @@
 - [ ] Turns alternate until both players have five cards.
 - [ ] A player cannot commit without all five cards on the player mat; COMMIT spaces them into the numbered slots.
 - [ ] Player mats show five card-sized slots, a Clash marker space behind each slot, and two ordered Blood Oath marker slots.
+- [ ] Both player mats sit clear of the center board and table surface without overlap or flicker.
 - [ ] Committed cards turn face-down and cannot be moved.
 - [ ] Oath controls are visible only to the owning player.
 - [ ] Host cannot reveal oaths before both lines commit.

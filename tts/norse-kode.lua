@@ -48,7 +48,7 @@ OATH_SLOT_GUIDS = {
 -- BOARD_LAYOUT is generated from tts/board-layout.json and prepended to the TTS save.
 -- Its positions use the board tile's local coordinate space, so art, dealt cards, and snaps share one source.
 SLOT_X = { -6, -3, 0, 3, 6 }
-SLOT_Z = { north = -8.4, south = 8.4 }
+SLOT_Z = { north = -11.2, south = 11.2 }
 PLAYER_MAT_SCALE_X = 3.3
 PLAYER_MAT_SCALE_Z = 3.6
 CLASH_MARKER_OFFSET = 2.09
@@ -56,12 +56,12 @@ SKIRMISH_TRACK_OFFSET = 2.3
 SKIRMISH_TRACK_X = { 0.8, 1.96, 3.12, 4.28, 5.44 }
 OATH_MARKER_POSITIONS = {
   north = {
-    { x = -1.85, y = 1.65, z = -11 },
-    { x = 1.85, y = 1.65, z = -11 },
+    { x = -1.85, y = 1.75, z = -13.8 },
+    { x = 1.85, y = 1.75, z = -13.8 },
   },
   south = {
-    { x = -1.85, y = 1.65, z = 11 },
-    { x = 1.85, y = 1.65, z = 11 },
+    { x = -1.85, y = 1.75, z = 13.8 },
+    { x = 1.85, y = 1.75, z = 13.8 },
   },
 }
 OATH_MARKER_LIMIT = 2
@@ -260,7 +260,7 @@ function distanceOnBoard(position, target)
 end
 
 function slotPosition(side, index)
-  return { x = SLOT_X[index], y = 1.25, z = SLOT_Z[side] }
+  return { x = SLOT_X[index], y = 1.35, z = SLOT_Z[side] }
 end
 
 function addLog(line)
@@ -366,7 +366,7 @@ end
 function aiHideCard(card, side, index)
   card.setLock(false)
   ensureFaceDown(card)
-  card.setPosition({ x = SLOT_X[index], y = 1.25, z = SLOT_Z[side] + (side == "north" and -2.2 or 2.2) })
+  card.setPosition({ x = SLOT_X[index], y = 1.35, z = SLOT_Z[side] + (side == "north" and -2.2 or 2.2) })
   card.setLock(true)
 end
 
@@ -754,8 +754,8 @@ function resultTextPosition(side, entry)
   local endIndex = entry.endIndex or startIndex
   return {
     x = (SLOT_X[startIndex] + SLOT_X[endIndex]) / 2,
-    y = 1.65,
-    z = SLOT_Z[side] - 0.85,
+    y = 1.75,
+    z = SLOT_Z[side] + (side == "north" and -0.85 or 0.85),
   }
 end
 
@@ -1778,7 +1778,7 @@ function clashTokenPosition(side, index)
   local markerOffset = side == "north" and -CLASH_MARKER_OFFSET or CLASH_MARKER_OFFSET
   return {
     x = SLOT_X[index],
-    y = 1.75,
+    y = 1.85,
     z = SLOT_Z[side] + markerOffset,
   }
 end
@@ -1883,7 +1883,7 @@ function skirmishTokenPosition(side, winNumber)
   local trackOffset = side == "north" and SKIRMISH_TRACK_OFFSET or -SKIRMISH_TRACK_OFFSET
   return {
     x = SKIRMISH_TRACK_X[winNumber],
-    y = 1.8,
+    y = 1.9,
     z = SLOT_Z[side] + trackOffset,
   }
 end
