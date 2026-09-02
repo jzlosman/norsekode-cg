@@ -23,6 +23,12 @@ const COLORS = {
   sword: '#46E3A8',
   spear: '#A970FF',
 }
+const HERO_THEMES = {
+  ravenfeeder: { primary: '#182B3A', secondary: '#425D70' },
+  berserker: { primary: '#842E2A', secondary: '#9B413A' },
+  shieldMaiden: { primary: '#26577A', secondary: '#396887' },
+  jarl: { primary: '#725615', secondary: '#7C5E1A' },
+}
 const RANK_FONT = join(fontDir, 'Bravyn Runeskald.ttf')
 const LABEL_FONT = join(fontDir, 'Inter-SemiBold.ttf')
 
@@ -133,12 +139,12 @@ const nightFrame = (accent) => `${glowDefs(accent)}
     ${angularCorners(accent)}
   </g>`
 
-const sagaFrame = () => `${glowDefs(COLORS.aurora)}
+const sagaFrame = (theme) => `${glowDefs(theme.secondary)}
   <g clip-path="url(#cardClip)">
     <rect width="750" height="1050" fill="${COLORS.bone}"/>
-    ${frameRails(COLORS.charcoal, COLORS.fjord)}
-    <rect x="175" y="45" width="400" height="1" fill="${COLORS.aurora}"/><rect x="175" y="1004" width="400" height="1" fill="${COLORS.aurora}"/>
-    ${angularCorners(COLORS.charcoal)}
+    ${frameRails(theme.primary, theme.secondary)}
+    <rect x="175" y="45" width="400" height="2" fill="${theme.secondary}"/><rect x="175" y="1003" width="400" height="2" fill="${theme.secondary}"/>
+    ${angularCorners(theme.primary)}
   </g>`
 
 const rankAdjustments = {
@@ -163,7 +169,7 @@ const corner = ({ rank, weapon, accent, special, flipped = false, hero = false }
     w: value === '10' ? 132 : 104,
     h: 118,
     size: adjustment.size,
-    color: hero ? COLORS.charcoal : accent,
+    color: accent,
     font: RANK_FONT,
   })
   const weaponMark = hero ? '' : pipImage(art[weapon], 92, 170, 58)
@@ -217,25 +223,25 @@ const standardCardSvg = ({ weapon, rank, category }) => {
 }
 
 const heroDetails = {
-  ravenfeeder: { rank: 'R', label: 'RAVENFEEDER', ability: 'UNSUITED  ·  12 STRENGTH', artKey: 'ravenfeeder' },
-  berserker: { rank: 'B', label: 'BERSERKER', ability: 'WIN THIS CLASH  ·  LOSE THE NEXT', artKey: 'berserker' },
-  'shield-maiden': { rank: 'S', label: 'SHIELD MAIDEN', ability: 'VENGEANCE  ·  GAIN THE PREVIOUS DEFEAT MARGIN', artKey: 'shieldMaiden' },
-  jarl: { rank: 'J', label: 'JARL', ability: 'LEAD BY EXAMPLE  ·  NEXT +3 WIN / +2 TIE / +1 LOSS', artKey: 'jarl' },
+  ravenfeeder: { rank: 'R', label: 'RAVENFEEDER', ability: 'UNSUITED  ·  12 STRENGTH', artKey: 'ravenfeeder', theme: HERO_THEMES.ravenfeeder },
+  berserker: { rank: 'B', label: 'BERSERKER', ability: 'WIN THIS CLASH  ·  LOSE THE NEXT', artKey: 'berserker', theme: HERO_THEMES.berserker },
+  'shield-maiden': { rank: 'S', label: 'SHIELD MAIDEN', ability: 'VENGEANCE  ·  GAIN THE PREVIOUS DEFEAT MARGIN', artKey: 'shieldMaiden', theme: HERO_THEMES.shieldMaiden },
+  jarl: { rank: 'J', label: 'JARL', ability: 'LEAD BY EXAMPLE  ·  NEXT +3 WIN / +2 TIE / +1 LOSS', artKey: 'jarl', theme: HERO_THEMES.jarl },
 }
 
 const heroCardSvg = ({ id }) => {
   const hero = heroDetails[id]
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    ${sagaFrame()}
+    ${sagaFrame(hero.theme)}
     <g clip-path="url(#cardClip)">
-      ${corner({ rank: hero.rank, accent: COLORS.charcoal, hero: true })}
-      ${corner({ rank: hero.rank, accent: COLORS.charcoal, hero: true, flipped: true })}
+      ${corner({ rank: hero.rank, accent: hero.theme.primary, hero: true })}
+      ${corner({ rank: hero.rank, accent: hero.theme.primary, hero: true, flipped: true })}
       ${image(art[hero.artKey], 73, 118, 604, 754)}
       <rect x="120" y="850" width="510" height="112" rx="8" fill="${COLORS.bone}" opacity="0.93"/>
-      ${line(245, 869, 505, 869, COLORS.fjord, 1.5)}
+      ${line(245, 869, 505, 869, hero.theme.secondary, 2)}
       ${textImage(hero.label, 375, 895, { w: 500, h: 42, size: hero.label.length > 12 ? 25 : 29, color: COLORS.charcoal, kerning: 5 })}
       ${textImage(hero.ability, 375, 934, { w: 590, h: 30, size: hero.ability.length > 42 ? 10 : 12, color: COLORS.fjord, kerning: 1.5 })}
-      ${line(280, 959, 470, 959, COLORS.aurora, 1.5, 'opacity="0.8"')}
+      ${line(280, 959, 470, 959, hero.theme.secondary, 2)}
     </g>
   </svg>`
 }

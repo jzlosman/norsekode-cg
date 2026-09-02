@@ -60,6 +60,16 @@ describe('battle card assets', () => {
     }
   })
 
+  it('gives every Saga Hero a distinct border and rank color', () => {
+    const source = readFileSync(generatorSource, 'utf8')
+
+    for (const color of ['#182B3A', '#842E2A', '#26577A', '#725615']) {
+      expect(source).toContain(color)
+    }
+    expect(source).toContain('HERO_THEMES')
+    expect(source).toContain('sagaFrame(hero.theme)')
+  })
+
   it('keeps fronts logo-free and preserves the established weapon and special emblems', () => {
     const source = readFileSync(generatorSource, 'utf8')
 
