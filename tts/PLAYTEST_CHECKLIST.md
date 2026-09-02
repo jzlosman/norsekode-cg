@@ -3,6 +3,9 @@
 ## Happy path
 
 - [ ] The default red TTS table is replaced by the top-down frozen battlefield, and the surrounding room uses the snowy-fjord background.
+- [ ] The locked VOICELESS EDDA console appears beside Host Controls without overlapping it or the player mat.
+- [ ] Loading the save remains silent; a non-host cannot control music.
+- [ ] The host's first PLAY loads and starts the nine-track album; PLAY/PAUSE, previous, next, and SHUF ON/OFF update the music and console description.
 - [ ] Two players claim different sides.
 - [ ] Host starts a War and the deck visibly shuffles.
 - [ ] Ten cards appear face-up in two tight rows of five and center inside the printed wells.

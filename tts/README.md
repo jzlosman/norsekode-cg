@@ -15,6 +15,9 @@ This directory contains the multiplayer tabletop version of Norse Kode. TTS is t
 - `assets/card-back.png` — card back
 - `assets/norse-kode-player-mat-base.png` — generated base art for the player mat
 - `assets/norse-kode-player-mat.png` — natural wood-and-iron player mat with card guides, ordered Blood Oath spaces, Clash spaces, and five-win track
+- `music-playlist.json` — ordered Voiceless Edda track metadata and URL-safe filenames
+- `assets/music/*.mp3` — nine 192 kbps TTS soundtrack files generated from the external WAV masters
+- `assets/norse-kode-music-console.png` — wood, iron, and runestone skin for the physical music controls
 - `assets/norse-clash-token.png` / `assets/norse-skirmish-token.png` — generated thematic combat markers
 - `assets/oath-yes.png` / `assets/oath-no.png` — generated red Blood Oath marker artwork
 - `asset-urls.json` — immutable public URLs baked into the generated save
@@ -29,7 +32,13 @@ From the repository root:
 npm run build:tts
 ```
 
-The default save uses immutable raw GitHub URLs from `tts/asset-urls.json` for the custom battlefield table, snowy-fjord background, board, cards, player mat, combat markers, and oath markers. They point to the public [`jzlosman/norsekode-cg`](https://github.com/jzlosman/norsekode-cg) repository and are pinned to an asset commit so later changes cannot silently alter an existing TTS save.
+The default save uses immutable raw GitHub URLs from `tts/asset-urls.json` for the custom battlefield table, snowy-fjord background, board, cards, player mat, music console and soundtrack, combat markers, and oath markers. They point to the public [`jzlosman/norsekode-cg`](https://github.com/jzlosman/norsekode-cg) repository and are pinned to an asset commit so later changes cannot silently alter an existing TTS save.
+
+Generate the soundtrack from the owner's external WAV directory without copying the masters into Git:
+
+```bash
+NORSE_KODE_MUSIC_SOURCE_DIR="/path/to/Voiceless Edda/Spotify Upload Ready" npm run generate:tts-music
+```
 
 When assets change, regenerate them, commit and push that asset revision, replace the commit hash in `asset-urls.json`, rebuild the save, and commit the updated configuration. Layout changes require importing the rebuilt `Norse Kode.json`; an in-progress TTS save is not repositioned automatically. Provide temporary URL overrides with either one shared base URL:
 
@@ -47,6 +56,8 @@ NORSE_KODE_CARDS_URL=https://... \\
 NORSE_KODE_CARD_BACK_URL=https://... \\
 NORSE_KODE_MANIFEST_URL=https://... \\
 NORSE_KODE_PLAYER_MAT_URL=https://... \\
+NORSE_KODE_MUSIC_CONSOLE_URL=https://... \\
+NORSE_KODE_MUSIC_BASE_URL=https://.../music/ \\
 NORSE_KODE_CLASH_TOKEN_URL=https://... \\
 NORSE_KODE_SKIRMISH_TOKEN_URL=https://... \\
 NORSE_KODE_OATH_YES_URL=https://... \\
@@ -54,7 +65,7 @@ NORSE_KODE_OATH_NO_URL=https://... \\
 npm run build:tts
 ```
 
-TTS uses the custom tabletop, custom background, board, deck atlas, card-back, player mat, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
+TTS uses the custom tabletop, custom background, board, deck atlas, card-back, player mat, music, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
 
 ## Load in TTS
 
@@ -63,6 +74,10 @@ TTS uses the custom tabletop, custom background, board, deck atlas, card-back, p
 3. For solo play, sit in any one color and click **CLAIM NORTH** or **CLAIM SOUTH**. The unclaimed side is controlled by the solo AI. For multiplayer, have two players sit in any two colors and claim opposite sides.
 4. The host clicks **START WAR**.
 5. Save the loaded table as a local save and optionally upload it to the Workshop for friends.
+
+### Physical music console
+
+The locked **VOICELESS EDDA** console beside Host Controls drives TTS's global Music Player. Loading the save remains silent. The host can click **PLAY**, **PAUSE**, **|<**, **>|**, or **SHUF ON/OFF**; the first valid click loads the nine-track album in order. Hover the console or a control to see the current track and loading status. Non-host clicks cannot change playback. Repeat remains available in TTS's native Music menu.
 
 Typical save locations:
 
