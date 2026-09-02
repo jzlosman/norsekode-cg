@@ -28,7 +28,7 @@ A pass-and-play browser harness supports War setup, open ten-card drafting, form
 
 ## Capabilities and Constraints
 
-The prototype uses three weapon types, configurable chain bonuses, Bloodsworn, Shield Wall, Ravenfeeder, Berserker, Shield Maiden Vengeance, and Skald Responsive Song. God/Mythos cards are reserved and disabled by default. No deckbuilding, accounts, online multiplayer, campaign, resource system, or final art should be added in v0.1.
+The prototype uses three weapon types, configurable chain bonuses, Bloodsworn, Shield Wall, Ravenfeeder, Berserker, Shield Maiden Vengeance, and Jarl Lead by Example. God/Mythos cards are reserved and disabled by default. No deckbuilding, accounts, online multiplayer, campaign, resource system, or additional card classes should be added in v0.1.
 
 ## Brand Commitments
 

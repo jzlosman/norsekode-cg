@@ -35,7 +35,7 @@ The generated deck lives in `public/assets/cards/` as 42 individual 750×1050 PN
 npm run generate:cards
 ```
 
-The generator keeps the number cards deliberately close to a traditional pip deck, uses suit-tinted paper and restrained corner marks, and reserves richer portraits for the four hero types. Shield Maiden uses **Vengeance** as a primary warrior, drawing on the previous numeric defeat margin; Skald uses **Responsive Song** to strengthen the next entry based on his Clash result, even when Bloodsworn consumes him.
+The generator builds a branded **Night & Saga** deck: dark aurora suit cards with runic ranks and geometric weapon pips, plus bone-colored cinematic-etching Hero cards. Shield Maiden uses **Vengeance** as a primary warrior, drawing on the previous numeric defeat margin; Jarl uses **Lead by Example** to strengthen the next entry based on his Clash result, even when Bloodsworn consumes him.
 
 ## Verify
 
@@ -50,4 +50,4 @@ npm run build
 - `src/game/config.ts` contains balance and unresolved behavior switches.
 - `src/game/engine.ts` is the pure, data-driven rules core.
 - God cards are decorative and disabled by default.
-- Shield Maiden and Skald are active, configurable Hero abilities.
+- Shield Maiden and Jarl are active, configurable Hero abilities.

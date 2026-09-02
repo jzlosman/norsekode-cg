@@ -81,11 +81,11 @@ In solo mode, the AI considers all 120 card orders plus every legal sworn/unswor
 
 After both lines commit, each human player sees only their own private Blood Oath controls. The AI's Blood Oaths are already part of its selected formation plan, so it can deliberately decline an oath. Human buttons are labeled **SWEAR SLOT N** or **UNSWEAR SLOT N**; this is an optional choice, not a warning. The host clicks **REVEAL OATHS**, then **REVEAL NEXT CLASH** for each sequential clash. All phase, player, and host controls live in the readable screen-space panel; the table grid is reserved for the draw pile, discard pile, and draft cards.
 
-Each reveal flips only the active slot(s). Lua calculates chain bonuses, Bloodsworn partner consumption, Shield Wall disruption, Berserker effects and penalties, Ravenfeeder ties, Shield Maiden Vengeance, Skald Responsive Song, weapon tie-breaks, ties, and Clash wins. Compact numeric expressions such as `5+2+2` appear above the resolved cards. A thematic Clash marker is automatically taken from the unlimited **Clash Token Bag** and placed in the marker space behind the winning card.
+Each reveal flips only the active slot(s). Lua calculates chain bonuses, Bloodsworn partner consumption, Shield Wall disruption, Berserker effects and penalties, Ravenfeeder ties, Shield Maiden Vengeance, Jarl Lead by Example, weapon tie-breaks, ties, and Clash wins. Compact numeric expressions such as `5+2+2` appear above the resolved cards. A thematic Clash marker is automatically taken from the unlimited **Clash Token Bag** and placed in the marker space behind the winning card.
 
 **Shield Maiden — Vengeance:** when she is the primary warrior and her side lost the previous Clash, she gains the numeric margin of defeat using final displayed Strength. A consumed Shield Maiden does not trigger Vengeance. First position, ties, and losses caused only by a special rule or tie-break grant +0. The default is uncapped.
 
-**Skald — Responsive Song:** Skald queues +3 after a win, +2 after a tie, or +1 after a loss for his side's next Clash entry. He sings when he is the primary warrior or when a Bloodsworn consumes him. The song applies once, stacks with Vengeance, and is not removed by Shield Wall.
+**Jarl — Lead by Example:** Jarl queues +3 after a win, +2 after a tie, or +1 after a loss for his side's next Clash entry. He leads when he is the primary warrior or when a Bloodsworn consumes him. The bonus applies once, stacks with Vengeance, and is not removed by Shield Wall. Legacy `skald-*` cards from older saves resolve as Jarl.
 
 After the final Clash—or as soon as a side reaches three Clash wins—the result stays on the table in **SKIRMISH READY**. The host checks the revealed cards, math, and Clash marker, then clicks **END SKIRMISH**. That returns all temporary Clash markers to the bag and moves all ten cards to the neutral discard area; no Skirmish-win card stack is created. The winner receives one thematic Skirmish marker on the next space of their five-space Victory Track. The winner's opponent drafts first in the next Skirmish. The first side to five wins the War; starting a new War recycles the used cards and victory markers.
 
@@ -104,7 +104,7 @@ The default TTS configuration mirrors `src/game/config.ts`:
 - Shield Wall strength 6
 - Ravenfeeder strength 12
 - Shield Maiden Vengeance is uncapped
-- Skald Responsive Song grants +3 after a win, +2 after a tie, or +1 after a loss
+- Jarl Lead by Example grants +3 after a win, +2 after a tie, or +1 after a loss
 - Gods disabled
 
 The solo draft AI still takes the highest printed-strength legal card; strategic drafting is a separate future step. Formation search behavior is tunable through the `ai*` fields in `CONFIG`, including the near-optimal randomization tolerance, worst-case weight, and per-frame search batch size.

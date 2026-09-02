@@ -366,7 +366,7 @@ function tests.hero_momentum_abilities()
   stackedState.previousDefeatMargins.north = 6
   stackedState.songBonuses.north = 3
   local stacked = resolveClashState(stackedState, CARD_DATA, CONFIG, true)
-  assertEqual(stacked.north.breakdown[1].abilityBonus, 9, "Vengeance and Responsive Song should stack")
+  assertEqual(stacked.north.breakdown[1].abilityBonus, 9, "Vengeance and Lead by Example should stack")
   assertEqual(stacked.north.finalStrength, 20, "stacked Hero bonuses should affect displayed Strength")
 
   local shieldState = state({ "axe-1", "axe-8" }, { "sword-6" })
@@ -374,7 +374,7 @@ function tests.hero_momentum_abilities()
   shieldState.songBonuses.north = 3
   local shielded = resolveClashState(shieldState, CARD_DATA, CONFIG, true)
   assertEqual(shielded.north.breakdown[1].chainBonus, 0, "Shield Wall should still suppress chain Strength")
-  assertEqual(shielded.north.breakdown[1].abilityBonus, 3, "Shield Wall must not suppress Responsive Song")
+  assertEqual(shielded.north.breakdown[1].abilityBonus, 3, "Shield Wall must not suppress Lead by Example")
   assertEqual(shielded.north.finalStrength, 11, "Shield Wall should preserve ability Strength")
 end
 
@@ -445,8 +445,8 @@ function tests.state_migration()
   assertEqual(STATE.stateVersion, 4, "loaded state should migrate to Hero momentum version")
   assertEqual(STATE.previousDefeatMargins.north, 0, "migration should initialize North Vengeance")
   assertEqual(STATE.previousDefeatMargins.south, 0, "migration should initialize South Vengeance")
-  assertEqual(STATE.songBonuses.north, 0, "migration should initialize North Responsive Song")
-  assertEqual(STATE.songBonuses.south, 0, "migration should initialize South Responsive Song")
+  assertEqual(STATE.songBonuses.north, 0, "migration should initialize North Lead by Example carryover")
+  assertEqual(STATE.songBonuses.south, 0, "migration should initialize South Lead by Example carryover")
 end
 
 function tests.full_strategic_choice()

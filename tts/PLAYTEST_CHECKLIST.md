@@ -36,10 +36,10 @@
 - [ ] Berserker versus Berserker ties and queues both penalties.
 - [ ] Shield Maiden gains the previous final numeric defeat margin with no default cap.
 - [ ] Shield Maiden gains +0 after a previous tie or a loss caused only by a special rule/tie-break.
-- [ ] Skald queues +3 after winning, +2 after tying, and +1 after losing.
-- [ ] A Skald consumed by Bloodsworn still queues Responsive Song from that combo's result.
-- [ ] Responsive Song applies once to the next entry and stacks with Shield Maiden Vengeance.
-- [ ] Shield Wall removes chain Strength but preserves Vengeance and Responsive Song.
+- [ ] Jarl queues +3 after winning, +2 after tying, and +1 after losing.
+- [ ] A Jarl consumed by Bloodsworn still queues Lead by Example from that combo's result.
+- [ ] Lead by Example applies once to the next entry and stacks with Shield Maiden Vengeance.
+- [ ] Shield Wall removes chain Strength but preserves Vengeance and Lead by Example.
 - [ ] A weaponed warrior wins a numeric tie against Ravenfeeder.
 - [ ] Weapon triangle tie-breaks work when both entries are weaponed.
 - [ ] A numeric tie awards no Clash win.
