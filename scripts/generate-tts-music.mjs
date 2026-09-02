@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const manifest = JSON.parse(readFileSync(join(root, 'tts/music-playlist.json'), 'utf8'))
 const sourceDir = process.env.NORSE_KODE_MUSIC_SOURCE_DIR
-const outputDir = join(root, 'tts/assets/music')
+const outputDir = process.env.NORSE_KODE_MUSIC_OUTPUT_DIR ?? join(root, 'tts/assets/music')
 
 if (!sourceDir) {
   throw new Error('Set NORSE_KODE_MUSIC_SOURCE_DIR to the directory containing the Voiceless Edda WAV masters.')

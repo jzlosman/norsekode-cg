@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -47,13 +48,22 @@ if (deck.CustomDeck?.['1']?.NumWidth !== 7 || deck.CustomDeck?.['1']?.NumHeight 
 for (const asset of assets) {
   if (!existsSync(join(assetDir, asset))) throw new Error(`Missing generated TTS asset: ${asset}`)
 }
-for (const track of musicManifest.tracks) {
+for (const [index, track] of musicManifest.tracks.entries()) {
   const path = join(assetDir, 'music', track.file)
   if (!existsSync(path)) throw new Error(`Missing generated TTS music asset: ${track.file}`)
-  const data = readFileSync(path)
-  const hasId3 = data.toString('ascii', 0, 3) === 'ID3'
-  const hasMp3Frame = data[0] === 0xff && (data[1] & 0xe0) === 0xe0
-  if (data.length < 100_000 || (!hasId3 && !hasMp3Frame)) throw new Error(`Invalid MP3 asset: ${track.file}`)
+  const probe = spawnSync('ffprobe', [
+    '-v', 'error',
+    '-select_streams', 'a:0',
+    '-show_entries', 'stream=codec_name,sample_rate,channels,bit_rate:format_tags=title,artist,album,track',
+    '-of', 'json',
+    path,
+  ], { encoding: 'utf8' })
+  if (probe.status !== 0) throw new Error(`Could not inspect MP3 asset ${track.file}: ${probe.stderr}`)
+  const metadata = JSON.parse(probe.stdout)
+  const stream = metadata.streams?.[0]
+  const tags = metadata.format?.tags
+  if (stream?.codec_name !== 'mp3' || stream.sample_rate !== '48000' || stream.channels !== 2 || stream.bit_rate !== '192000') throw new Error(`Unexpected MP3 encoding for ${track.file}.`)
+  if (tags?.title !== track.title || tags.artist !== musicManifest.artist || tags.album !== musicManifest.album || tags.track !== `${index + 1}/${musicManifest.tracks.length}`) throw new Error(`Unexpected MP3 tags for ${track.file}.`)
 }
 for (const [asset, expected] of Object.entries({
   'norse-kode-battlefield-table.png': { width: 2048, height: 1024 },

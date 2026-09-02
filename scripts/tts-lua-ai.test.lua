@@ -57,6 +57,9 @@ MusicPlayer = {
   pauseCalls = 0,
   previousCalls = 0,
   nextCalls = 0,
+  playSucceeds = true,
+  pauseSucceeds = true,
+  skipSucceeds = true,
 }
 function MusicPlayer.setPlaylist(playlist)
   MusicPlayer.playlist = playlist
@@ -65,10 +68,20 @@ function MusicPlayer.setPlaylist(playlist)
   MusicPlayer.player_status = "Ready"
 end
 function MusicPlayer.getCurrentAudioclip() return MusicPlayer.playlist[MusicPlayer.playlist_index] end
-function MusicPlayer.play() MusicPlayer.playCalls = MusicPlayer.playCalls + 1; MusicPlayer.player_status = "Play"; return true end
-function MusicPlayer.pause() MusicPlayer.pauseCalls = MusicPlayer.pauseCalls + 1; MusicPlayer.player_status = "Stop"; return true end
-function MusicPlayer.skipBack() MusicPlayer.previousCalls = MusicPlayer.previousCalls + 1; return true end
-function MusicPlayer.skipForward() MusicPlayer.nextCalls = MusicPlayer.nextCalls + 1; return true end
+function MusicPlayer.play()
+  MusicPlayer.playCalls = MusicPlayer.playCalls + 1
+  if not MusicPlayer.playSucceeds then MusicPlayer.player_status = "Loading"; return false end
+  MusicPlayer.player_status = "Play"
+  return true
+end
+function MusicPlayer.pause()
+  MusicPlayer.pauseCalls = MusicPlayer.pauseCalls + 1
+  if not MusicPlayer.pauseSucceeds then return false end
+  MusicPlayer.player_status = "Stop"
+  return true
+end
+function MusicPlayer.skipBack() MusicPlayer.previousCalls = MusicPlayer.previousCalls + 1; return MusicPlayer.skipSucceeds end
+function MusicPlayer.skipForward() MusicPlayer.nextCalls = MusicPlayer.nextCalls + 1; return MusicPlayer.skipSucceeds end
 
 local function exposeCard(id)
   fakeObjects[id] = {
@@ -218,6 +231,9 @@ function tests.music_console_controls()
   MusicPlayer.pauseCalls = 0
   MusicPlayer.previousCalls = 0
   MusicPlayer.nextCalls = 0
+  MusicPlayer.playSucceeds = true
+  MusicPlayer.pauseSucceeds = true
+  MusicPlayer.skipSucceeds = true
 
   installMusicConsole()
   assertEqual(#musicConsoleStub.buttons, 4, "music console must expose four readable controls")
@@ -242,6 +258,38 @@ function tests.music_console_controls()
   musicToggleShuffle(nil, "White")
   assertTrue(MusicPlayer.shuffle, "shuffle control must toggle MusicPlayer.shuffle")
   assertEqual(MusicPlayer.setPlaylistCalls, 1, "later controls must reuse the initialized playlist")
+end
+
+function tests.music_console_recovers_and_times_out()
+  MUSIC_STATE = { initialized = false, pendingPlay = false, refreshGeneration = 0, playAttempts = 0, consoleInstalled = false }
+  musicConsoleStub.buttons = {}
+  MusicPlayer.player_status = "Stop"
+  MusicPlayer.playlist = {}
+  MusicPlayer.playSucceeds = false
+  MusicPlayer.skipSucceeds = true
+  MusicPlayer.playCalls = 0
+  MusicPlayer.nextCalls = 0
+
+  fakeObjects["m00001"] = nil
+  MUSIC_STATE.lastRefreshSecond = nil
+  onUpdate()
+  assertTrue(not MUSIC_STATE.consoleInstalled, "missing console must remain pending for recovery")
+  fakeObjects["m00001"] = musicConsoleStub
+  MUSIC_STATE.lastRefreshSecond = nil
+  onUpdate()
+  assertTrue(MUSIC_STATE.consoleInstalled, "status refresh must reinstall a late-loading console")
+  assertEqual(#musicConsoleStub.buttons, 4, "recovered console must restore all controls")
+
+  musicTogglePlay(nil, "White")
+  assertTrue(MUSIC_STATE.pendingPlay, "failed play while loading must remain pending briefly")
+  musicNext(nil, "White")
+  assertEqual(MusicPlayer.nextCalls, 0, "transport controls must be disabled while play is pending")
+  for _ = 1, 30 do attemptPendingMusicPlay() end
+  assertTrue(not MUSIC_STATE.pendingPlay, "failed playback must stop retrying after a bounded timeout")
+  assertTrue(MUSIC_STATE.error ~= nil, "failed playback must expose an error")
+  assertTrue(string.find(musicConsoleStub.description, "Error", 1, true) ~= nil, "console description must show playback failure")
+
+  MusicPlayer.playSucceeds = true
 end
 
 function tests.plan_generation()

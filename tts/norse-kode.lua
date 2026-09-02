@@ -66,6 +66,7 @@ OATH_MARKER_POSITIONS = {
 }
 OATH_MARKER_LIMIT = 2
 FORMATION_DROP_RADIUS = 7.5
+MUSIC_MAX_PLAY_ATTEMPTS = 20
 
 function buildCardData()
   local cards = {}
@@ -161,8 +162,10 @@ AI_FORMATION_SEARCH = nil
 MUSIC_STATE = {
   initialized = false,
   pendingPlay = false,
+  playAttempts = 0,
   shuffle = false,
   error = nil,
+  consoleInstalled = false,
   lastRefreshSecond = nil,
 }
 
@@ -2314,7 +2317,8 @@ function refreshMusicConsole()
   if MUSIC_STATE.error then description = description .. ": " .. MUSIC_STATE.error end
   musicConsole.setDescription(description)
 
-  if #musicConsole.getButtons() < 4 then return true end
+  local buttons = musicConsole.getButtons()
+  if not buttons or #buttons < 4 then return true end
   local playing = MusicPlayer.player_status == "Play"
   local loading = status == "Loading"
   local idleColor = { 0.10, 0.08, 0.06, 0.92 }
@@ -2347,57 +2351,82 @@ end
 
 function attemptPendingMusicPlay()
   if not MUSIC_STATE.pendingPlay then return end
+  MUSIC_STATE.playAttempts = (MUSIC_STATE.playAttempts or 0) + 1
   local ok, playing = pcall(function() return MusicPlayer.play() end)
   if ok and playing then
     MUSIC_STATE.pendingPlay = false
+    MUSIC_STATE.playAttempts = 0
     MUSIC_STATE.error = nil
   elseif not ok then
     MUSIC_STATE.pendingPlay = false
     MUSIC_STATE.error = tostring(playing)
+  elseif MUSIC_STATE.playAttempts >= MUSIC_MAX_PLAY_ATTEMPTS then
+    MUSIC_STATE.pendingPlay = false
+    MUSIC_STATE.error = "Playback could not start. Check the hosted MP3 connection and try again."
   end
   refreshMusicConsole()
+end
+
+function musicTransportReady(color)
+  if not MUSIC_STATE.pendingPlay then return true end
+  if color then broadcastToColor("Music is still loading.", color, { 0.91, 0.72, 0.35 }) end
+  return false
 end
 
 function musicTogglePlay(object, color)
   if not musicHostGuard(color) then return end
   if MusicPlayer.player_status == "Play" then
     MUSIC_STATE.pendingPlay = false
-    local ok, message = pcall(function() return MusicPlayer.pause() end)
-    if not ok then MUSIC_STATE.error = tostring(message) end
+    MUSIC_STATE.playAttempts = 0
+    local ok, paused = pcall(function() return MusicPlayer.pause() end)
+    if not ok then
+      MUSIC_STATE.error = tostring(paused)
+    elseif not paused then
+      MUSIC_STATE.error = "Music could not be paused."
+    else
+      MUSIC_STATE.error = nil
+    end
     refreshMusicConsole()
     return
   end
   if not ensureMusicPlaylist() then return end
   MUSIC_STATE.pendingPlay = true
+  MUSIC_STATE.playAttempts = 0
+  MUSIC_STATE.error = nil
   attemptPendingMusicPlay()
 end
 
 function musicPrevious(object, color)
-  if not musicHostGuard(color) or not ensureMusicPlaylist() then return end
-  local wasPlaying = MusicPlayer.player_status == "Play" or MUSIC_STATE.pendingPlay
-  local ok, message = pcall(function() return MusicPlayer.skipBack() end)
-  if not ok then MUSIC_STATE.error = tostring(message) end
-  if wasPlaying then MUSIC_STATE.pendingPlay = true; attemptPendingMusicPlay() else refreshMusicConsole() end
+  if not musicHostGuard(color) or not musicTransportReady(color) or not ensureMusicPlaylist() then return end
+  local wasPlaying = MusicPlayer.player_status == "Play"
+  local ok, skipped = pcall(function() return MusicPlayer.skipBack() end)
+  if not ok then MUSIC_STATE.error = tostring(skipped)
+  elseif not skipped then MUSIC_STATE.error = "The previous track is not available."
+  else MUSIC_STATE.error = nil end
+  if wasPlaying and ok and skipped then MUSIC_STATE.pendingPlay = true; MUSIC_STATE.playAttempts = 0; attemptPendingMusicPlay() else refreshMusicConsole() end
 end
 
 function musicNext(object, color)
-  if not musicHostGuard(color) or not ensureMusicPlaylist() then return end
-  local wasPlaying = MusicPlayer.player_status == "Play" or MUSIC_STATE.pendingPlay
-  local ok, message = pcall(function() return MusicPlayer.skipForward() end)
-  if not ok then MUSIC_STATE.error = tostring(message) end
-  if wasPlaying then MUSIC_STATE.pendingPlay = true; attemptPendingMusicPlay() else refreshMusicConsole() end
+  if not musicHostGuard(color) or not musicTransportReady(color) or not ensureMusicPlaylist() then return end
+  local wasPlaying = MusicPlayer.player_status == "Play"
+  local ok, skipped = pcall(function() return MusicPlayer.skipForward() end)
+  if not ok then MUSIC_STATE.error = tostring(skipped)
+  elseif not skipped then MUSIC_STATE.error = "The next track is not available."
+  else MUSIC_STATE.error = nil end
+  if wasPlaying and ok and skipped then MUSIC_STATE.pendingPlay = true; MUSIC_STATE.playAttempts = 0; attemptPendingMusicPlay() else refreshMusicConsole() end
 end
 
 function musicToggleShuffle(object, color)
-  if not musicHostGuard(color) or not ensureMusicPlaylist() then return end
+  if not musicHostGuard(color) or not musicTransportReady(color) or not ensureMusicPlaylist() then return end
   MusicPlayer.shuffle = not MusicPlayer.shuffle
   MUSIC_STATE.shuffle = MusicPlayer.shuffle
+  MUSIC_STATE.error = nil
   refreshMusicConsole()
 end
 
 function installMusicConsole()
   local musicConsole = getObjectFromGUID(MUSIC_CONSOLE_GUID)
-  if not musicConsole then return false end
+  if not musicConsole then MUSIC_STATE.consoleInstalled = false; return false end
   musicConsole.clearButtons()
   local controls = {
     { click = "musicPrevious", label = "|<", x = -1.45, tooltip = "Previous track." },
@@ -2422,6 +2451,7 @@ function installMusicConsole()
       tooltip = control.tooltip .. " Loads the Voiceless Edda playlist on first use.",
     })
   end
+  MUSIC_STATE.consoleInstalled = true
   refreshMusicConsole()
   return true
 end
@@ -2581,10 +2611,14 @@ function onLoad(savedData)
 end
 
 function onUpdate()
-  if not MUSIC_STATE.initialized then return end
   local now = os.time()
   if MUSIC_STATE.lastRefreshSecond == now then return end
   MUSIC_STATE.lastRefreshSecond = now
+  local musicConsole = getObjectFromGUID(MUSIC_CONSOLE_GUID)
+  if not musicConsole then MUSIC_STATE.consoleInstalled = false; return end
+  local buttons = musicConsole.getButtons()
+  if not MUSIC_STATE.consoleInstalled or not buttons or #buttons < 4 then installMusicConsole() end
+  if not MUSIC_STATE.initialized then return end
   if MUSIC_STATE.pendingPlay then attemptPendingMusicPlay() else refreshMusicConsole() end
 end
 

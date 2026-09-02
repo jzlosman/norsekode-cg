@@ -1,4 +1,8 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { copyFileSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 const manifestFile = new URL('../tts/music-playlist.json', import.meta.url)
@@ -34,11 +38,50 @@ describe('TTS music assets', () => {
 
     const source = readFileSync(generatorFile, 'utf8')
     expect(source).toContain('NORSE_KODE_MUSIC_SOURCE_DIR')
+    expect(source).toContain('NORSE_KODE_MUSIC_OUTPUT_DIR')
     expect(source).toContain("'libmp3lame'")
     expect(source).toContain("'192k'")
     expect(source).toContain("'48000'")
     expect(source).toContain("'-metadata', `artist=${manifest.artist}`")
     expect(source).toContain("'-metadata', `album=${manifest.album}`")
     expect(source).toContain("'-metadata', `track=${index + 1}/${manifest.tracks.length}`")
+  })
+
+  it('produces probeable stereo 48 kHz files with the required bitrate and tags', () => {
+    const generator = readFileSync(generatorFile, 'utf8')
+    expect(generator).toContain('NORSE_KODE_MUSIC_OUTPUT_DIR')
+    if (!generator.includes('NORSE_KODE_MUSIC_OUTPUT_DIR')) return
+
+    const workspace = mkdtempSync(join(tmpdir(), 'norse-kode-music-'))
+    const sourceDir = join(workspace, 'wav')
+    const outputDir = join(workspace, 'mp3')
+    mkdirSync(sourceDir)
+    try {
+      const seedWav = join(sourceDir, expectedTracks[0][0])
+      execFileSync('ffmpeg', ['-v', 'error', '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-t', '0.2', seedWav])
+      for (const [source] of expectedTracks.slice(1)) copyFileSync(seedWav, join(sourceDir, source))
+      execFileSync(process.execPath, [fileURLToPath(generatorFile)], {
+        env: {
+          ...process.env,
+          NORSE_KODE_MUSIC_SOURCE_DIR: sourceDir,
+          NORSE_KODE_MUSIC_OUTPUT_DIR: outputDir,
+        },
+      })
+
+      for (const [index, [, file, title]] of expectedTracks.entries()) {
+        const output = join(outputDir, file)
+        const probe = JSON.parse(execFileSync('ffprobe', [
+          '-v', 'error',
+          '-select_streams', 'a:0',
+          '-show_entries', 'stream=codec_name,sample_rate,channels,bit_rate:format_tags=title,artist,album,track',
+          '-of', 'json',
+          output,
+        ], { encoding: 'utf8' }))
+        expect(probe.streams[0]).toMatchObject({ codec_name: 'mp3', sample_rate: '48000', channels: 2, bit_rate: '192000' })
+        expect(probe.format.tags).toMatchObject({ title, artist: 'Norse Kode', album: 'Voiceless Edda', track: `${index + 1}/9` })
+      }
+    } finally {
+      rmSync(workspace, { recursive: true, force: true })
+    }
   })
 })

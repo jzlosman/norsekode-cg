@@ -3,6 +3,8 @@ dist/
 .worktrees/
 .tmp-card-assets/
 *.tsbuildinfo
+*.wav
+*.wave
 .DS_Store
 .env
 .env.*
