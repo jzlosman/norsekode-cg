@@ -1,0 +1,31 @@
+import type { GameConfig } from './types'
+
+export const DEFAULT_CONFIG: GameConfig = {
+  skirmishesToWin: 5,
+  draftPoolSize: 10,
+  cardsPerPlayer: 5,
+  clashesToWinSkirmish: 3,
+  chainBonusStep: 1,
+  bloodswornStrength: 5,
+  shieldWallStrength: 6,
+  ravenfeederStrength: 12,
+  weaponAdvantageMode: 'tie-break-only',
+  weaponTriangle: {
+    axe: 'sword',
+    sword: 'spear',
+    spear: 'axe',
+    none: null,
+  },
+  shieldWallCancelsCurrentChain: true,
+  shieldWallBreaksFutureChain: true,
+  bloodswornAddsChainBonuses: true,
+  consumedAbilityActivates: false,
+  shieldMaidenVengeanceCap: null,
+  skaldWinBonus: 3,
+  skaldTieBonus: 2,
+  skaldLossBonus: 1,
+  berserkerPenaltySuppressesAbilities: true,
+  tieBehavior: 'no-winner',
+  godCardsEnabled: false,
+  recycleDiscard: true,
+}

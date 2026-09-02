@@ -1,0 +1,109 @@
+# Norse Kode · Tabletop Simulator
+
+This directory contains the multiplayer tabletop version of Norse Kode. TTS is the primary playtest experience; the browser app remains a deterministic rules/debug reference.
+
+## What is included
+
+- `norse-kode.lua` — editable TTS controller
+- `norse-kode-ui.xml` — public status/log UI and private Blood Oath controls
+- `assets/norse-kode-table-base.png` — base wooden board art
+- `assets/norse-kode-table.png` — generated board texture with mapped draw/discard spaces
+- `assets/norse-kode-deck.png` — 42-card, 7×6 TTS deck atlas
+- `assets/card-back.png` — card back
+- `assets/norse-kode-player-mat-base.png` — generated base art for the player mat
+- `assets/norse-kode-player-mat.png` — composed full player battle mat with card slots, ordered Blood Oath spaces, Clash spaces, and five-win track
+- `assets/norse-clash-token.png` / `assets/norse-skirmish-token.png` — generated thematic combat markers
+- `assets/oath-yes.png` / `assets/oath-no.png` — generated red Blood Oath marker artwork
+- `build/Norse Kode.json` — generated TTS save file
+- `PLAYTEST_CHECKLIST.md` — recommended multiplayer test cases
+
+## Build the mod
+
+From the repository root:
+
+```bash
+npm run build:tts
+```
+
+The default save uses the Steam Cloud URLs in `tts/steam-cloud-assets.json` for the table, cards, player mat, combat markers, and oath markers. Provide URL overrides with either one shared base URL:
+
+```bash
+NORSE_KODE_ASSET_BASE_URL=https://example.com/norse-kode/ npm run build:tts
+```
+
+or individual files:
+
+```bash
+NORSE_KODE_TABLE_URL=https://... \\
+NORSE_KODE_CARDS_URL=https://... \\
+NORSE_KODE_CARD_BACK_URL=https://... \\
+NORSE_KODE_MANIFEST_URL=https://... \\
+NORSE_KODE_PLAYER_MAT_URL=https://... \\
+NORSE_KODE_CLASH_TOKEN_URL=https://... \\
+NORSE_KODE_SKIRMISH_TOKEN_URL=https://... \\
+NORSE_KODE_OATH_YES_URL=https://... \\
+NORSE_KODE_OATH_NO_URL=https://... \\
+npm run build:tts
+```
+
+TTS uses the table, deck atlas, card-back, player mat, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
+
+## Load in TTS
+
+1. Copy `tts/build/Norse Kode.json` into your TTS local saves directory.
+2. Open TTS and load the **Norse Kode** save.
+3. For solo play, sit in any one color and click **CLAIM NORTH** or **CLAIM SOUTH**. The unclaimed side is controlled by the solo AI. For multiplayer, have two players sit in any two colors and claim opposite sides.
+4. The host clicks **START WAR**.
+5. Save the loaded table as a local save and optionally upload it to the Workshop for friends.
+
+Typical save locations:
+
+- macOS: `~/Library/Tabletop Simulator/Saves/`
+- Windows: `%USERPROFILE%/Documents/My Games/Tabletop Simulator/Saves/`
+- Linux: `~/.local/share/Tabletop Simulator/Saves/`
+
+## Multiplayer flow
+
+### Draft
+
+The host starts the War from the readable screen-space control panel on the right. The first board column is the vertical draw/discard column: draw pile on the top row and discard pile on the bottom row. The five columns to its right are the ten-card draft grid. The script shuffles the face-down 42-card deck, deals ten separated face-up cards into those five draft columns, and assigns a random first drafter. The active player clicks **TAKE** on one card. The card goes to that player's private TTS hand and the turn alternates automatically. In solo mode, the AI automatically drafts the highest-strength legal card when its turn arrives and keeps its cards face-down.
+
+### Formation
+
+After both players have five cards, arrange the cards on your full player battle mat. Drop the cards on the formation row; each drop is assigned to the nearest available card-sized slot and turns face-down automatically. If cards land together, **COMMIT** sorts all five cards into the numbered slots and spaces them evenly. The circular marker below each slot is the Clash-win space for that card. Each mat also has two ordered Blood Oath marker slots. The script requires all five cards to be on the mat, centers them exactly, locks them, and keeps the line hidden from the opponent.
+
+In solo mode, the AI considers all 120 card orders plus every legal sworn/unsworn Bloodsworn state. It simulates each plan against every legal formation and oath state available to the known opposing hand. Plans are scored by expected result, worst matchup, decisive wins, Bloodsworn efficiency, and wasted Berserker triggers. The search runs in small batches across TTS frames, then randomly selects among near-equal leaders so the AI does not become deterministic.
+
+### Oaths and clashes
+
+After both lines commit, each human player sees only their own private Blood Oath controls. The AI's Blood Oaths are already part of its selected formation plan, so it can deliberately decline an oath. Human buttons are labeled **SWEAR SLOT N** or **UNSWEAR SLOT N**; this is an optional choice, not a warning. The host clicks **REVEAL OATHS**, then **REVEAL NEXT CLASH** for each sequential clash. All phase, player, and host controls live in the readable screen-space panel; the table grid is reserved for the draw pile, discard pile, and draft cards.
+
+Each reveal flips only the active slot(s). Lua calculates chain bonuses, Bloodsworn partner consumption, Shield Wall disruption, Berserker effects and penalties, Ravenfeeder ties, Shield Maiden Vengeance, Skald Responsive Song, weapon tie-breaks, ties, and Clash wins. Compact numeric expressions such as `5+2+2` appear above the resolved cards. A thematic Clash marker is automatically taken from the unlimited **Clash Token Bag** and placed in the marker space behind the winning card.
+
+**Shield Maiden — Vengeance:** when she is the primary warrior and her side lost the previous Clash, she gains the numeric margin of defeat using final displayed Strength. A consumed Shield Maiden does not trigger Vengeance. First position, ties, and losses caused only by a special rule or tie-break grant +0. The default is uncapped.
+
+**Skald — Responsive Song:** Skald queues +3 after a win, +2 after a tie, or +1 after a loss for his side's next Clash entry. He sings when he is the primary warrior or when a Bloodsworn consumes him. The song applies once, stacks with Vengeance, and is not removed by Shield Wall.
+
+After the final Clash—or as soon as a side reaches three Clash wins—the result stays on the table in **SKIRMISH READY**. The host checks the revealed cards, math, and Clash marker, then clicks **END SKIRMISH**. That returns all temporary Clash markers to the bag and moves all ten cards to the neutral discard area; no Skirmish-win card stack is created. The winner receives one thematic Skirmish marker on the next space of their five-space Victory Track. The winner's opponent drafts first in the next Skirmish. The first side to five wins the War; starting a new War recycles the used cards and victory markers.
+
+When Blood Oaths are revealed, each player receives up to two red **YES** or **NO** markers in their own ordered **OATH 1 / OATH 2** placeholder slots on their player mat. The row never identifies which card produced a marker; markers remain ordered by reveal order.
+
+## Editing rules
+
+The default TTS configuration mirrors `src/game/config.ts`:
+
+- 5 Skirmish wins to reduce the opponent's population to zero and win a War
+- 10-card open draft
+- 5-card formations
+- 3 Clash wins to take a Skirmish
+- +1 per same-weapon chain step
+- Bloodsworn strength 5
+- Shield Wall strength 6
+- Ravenfeeder strength 12
+- Shield Maiden Vengeance is uncapped
+- Skald Responsive Song grants +3 after a win, +2 after a tie, or +1 after a loss
+- Gods disabled
+
+The solo draft AI still takes the highest printed-strength legal card; strategic drafting is a separate future step. Formation search behavior is tunable through the `ai*` fields in `CONFIG`, including the near-optimal randomization tolerance, worst-case weight, and per-frame search batch size.
+
+Edit `tts/norse-kode.lua` for a TTS-only experiment. `CONFIG.soloMode` is enabled by default for local testing; set it to `false` to require two human players. Update the TypeScript engine and its tests first when changing the canonical rules, then port the same behavior into Lua.

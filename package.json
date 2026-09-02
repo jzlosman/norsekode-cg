@@ -1,0 +1,31 @@
+{
+  "name": "norse-kode-game",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:lua-ai": "fengari scripts/tts-lua-ai.test.lua all",
+    "generate:cards": "node scripts/generate-card-assets.mjs",
+    "build:tts-assets": "node scripts/generate-tts-assets.mjs",
+    "build:tts-save": "node scripts/build-tts-save.mjs",
+    "build:tts": "npm run build:tts-assets && npm run build:tts-save && npm run verify:tts",
+    "verify:tts": "node scripts/validate-tts.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest",
+    "vite": "latest",
+    "vitest": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "fengari-node-cli": "^0.1.0"
+  }
+}

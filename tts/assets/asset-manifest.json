@@ -1,0 +1,391 @@
+{
+  "source": "public/assets/cards/manifest.json",
+  "atlas": {
+    "file": "norse-kode-deck.png",
+    "width": 5250,
+    "height": 6300,
+    "columns": 7,
+    "rows": 6
+  },
+  "cardBack": "card-back.png",
+  "cards": [
+    {
+      "id": "axe-1",
+      "name": "Axe 1",
+      "category": "standard",
+      "printedStrength": 1,
+      "file": "axe-1.png",
+      "atlasIndex": 0,
+      "ttsCardId": 100
+    },
+    {
+      "id": "axe-2",
+      "name": "Axe 2",
+      "category": "standard",
+      "printedStrength": 2,
+      "file": "axe-2.png",
+      "atlasIndex": 1,
+      "ttsCardId": 101
+    },
+    {
+      "id": "axe-3",
+      "name": "Axe 3",
+      "category": "standard",
+      "printedStrength": 3,
+      "file": "axe-3.png",
+      "atlasIndex": 2,
+      "ttsCardId": 102
+    },
+    {
+      "id": "axe-4",
+      "name": "Axe 4",
+      "category": "standard",
+      "printedStrength": 4,
+      "file": "axe-4.png",
+      "atlasIndex": 3,
+      "ttsCardId": 103
+    },
+    {
+      "id": "axe-5",
+      "name": "Bloodsworn of Axes",
+      "category": "bloodsworn",
+      "printedStrength": 5,
+      "file": "axe-5.png",
+      "atlasIndex": 4,
+      "ttsCardId": 104
+    },
+    {
+      "id": "axe-6",
+      "name": "Axe Shield Wall",
+      "category": "shield_wall",
+      "printedStrength": 6,
+      "file": "axe-6.png",
+      "atlasIndex": 5,
+      "ttsCardId": 105
+    },
+    {
+      "id": "axe-7",
+      "name": "Axe 7",
+      "category": "standard",
+      "printedStrength": 7,
+      "file": "axe-7.png",
+      "atlasIndex": 6,
+      "ttsCardId": 106
+    },
+    {
+      "id": "axe-8",
+      "name": "Axe 8",
+      "category": "standard",
+      "printedStrength": 8,
+      "file": "axe-8.png",
+      "atlasIndex": 7,
+      "ttsCardId": 107
+    },
+    {
+      "id": "axe-9",
+      "name": "Axe 9",
+      "category": "standard",
+      "printedStrength": 9,
+      "file": "axe-9.png",
+      "atlasIndex": 8,
+      "ttsCardId": 108
+    },
+    {
+      "id": "axe-10",
+      "name": "Axe 10",
+      "category": "standard",
+      "printedStrength": 10,
+      "file": "axe-10.png",
+      "atlasIndex": 9,
+      "ttsCardId": 109
+    },
+    {
+      "id": "sword-1",
+      "name": "Sword 1",
+      "category": "standard",
+      "printedStrength": 1,
+      "file": "sword-1.png",
+      "atlasIndex": 10,
+      "ttsCardId": 110
+    },
+    {
+      "id": "sword-2",
+      "name": "Sword 2",
+      "category": "standard",
+      "printedStrength": 2,
+      "file": "sword-2.png",
+      "atlasIndex": 11,
+      "ttsCardId": 111
+    },
+    {
+      "id": "sword-3",
+      "name": "Sword 3",
+      "category": "standard",
+      "printedStrength": 3,
+      "file": "sword-3.png",
+      "atlasIndex": 12,
+      "ttsCardId": 112
+    },
+    {
+      "id": "sword-4",
+      "name": "Sword 4",
+      "category": "standard",
+      "printedStrength": 4,
+      "file": "sword-4.png",
+      "atlasIndex": 13,
+      "ttsCardId": 113
+    },
+    {
+      "id": "sword-5",
+      "name": "Bloodsworn of Swords",
+      "category": "bloodsworn",
+      "printedStrength": 5,
+      "file": "sword-5.png",
+      "atlasIndex": 14,
+      "ttsCardId": 114
+    },
+    {
+      "id": "sword-6",
+      "name": "Sword Shield Wall",
+      "category": "shield_wall",
+      "printedStrength": 6,
+      "file": "sword-6.png",
+      "atlasIndex": 15,
+      "ttsCardId": 115
+    },
+    {
+      "id": "sword-7",
+      "name": "Sword 7",
+      "category": "standard",
+      "printedStrength": 7,
+      "file": "sword-7.png",
+      "atlasIndex": 16,
+      "ttsCardId": 116
+    },
+    {
+      "id": "sword-8",
+      "name": "Sword 8",
+      "category": "standard",
+      "printedStrength": 8,
+      "file": "sword-8.png",
+      "atlasIndex": 17,
+      "ttsCardId": 117
+    },
+    {
+      "id": "sword-9",
+      "name": "Sword 9",
+      "category": "standard",
+      "printedStrength": 9,
+      "file": "sword-9.png",
+      "atlasIndex": 18,
+      "ttsCardId": 118
+    },
+    {
+      "id": "sword-10",
+      "name": "Sword 10",
+      "category": "standard",
+      "printedStrength": 10,
+      "file": "sword-10.png",
+      "atlasIndex": 19,
+      "ttsCardId": 119
+    },
+    {
+      "id": "spear-1",
+      "name": "Spear 1",
+      "category": "standard",
+      "printedStrength": 1,
+      "file": "spear-1.png",
+      "atlasIndex": 20,
+      "ttsCardId": 120
+    },
+    {
+      "id": "spear-2",
+      "name": "Spear 2",
+      "category": "standard",
+      "printedStrength": 2,
+      "file": "spear-2.png",
+      "atlasIndex": 21,
+      "ttsCardId": 121
+    },
+    {
+      "id": "spear-3",
+      "name": "Spear 3",
+      "category": "standard",
+      "printedStrength": 3,
+      "file": "spear-3.png",
+      "atlasIndex": 22,
+      "ttsCardId": 122
+    },
+    {
+      "id": "spear-4",
+      "name": "Spear 4",
+      "category": "standard",
+      "printedStrength": 4,
+      "file": "spear-4.png",
+      "atlasIndex": 23,
+      "ttsCardId": 123
+    },
+    {
+      "id": "spear-5",
+      "name": "Bloodsworn of Spears",
+      "category": "bloodsworn",
+      "printedStrength": 5,
+      "file": "spear-5.png",
+      "atlasIndex": 24,
+      "ttsCardId": 124
+    },
+    {
+      "id": "spear-6",
+      "name": "Spear Shield Wall",
+      "category": "shield_wall",
+      "printedStrength": 6,
+      "file": "spear-6.png",
+      "atlasIndex": 25,
+      "ttsCardId": 125
+    },
+    {
+      "id": "spear-7",
+      "name": "Spear 7",
+      "category": "standard",
+      "printedStrength": 7,
+      "file": "spear-7.png",
+      "atlasIndex": 26,
+      "ttsCardId": 126
+    },
+    {
+      "id": "spear-8",
+      "name": "Spear 8",
+      "category": "standard",
+      "printedStrength": 8,
+      "file": "spear-8.png",
+      "atlasIndex": 27,
+      "ttsCardId": 127
+    },
+    {
+      "id": "spear-9",
+      "name": "Spear 9",
+      "category": "standard",
+      "printedStrength": 9,
+      "file": "spear-9.png",
+      "atlasIndex": 28,
+      "ttsCardId": 128
+    },
+    {
+      "id": "spear-10",
+      "name": "Spear 10",
+      "category": "standard",
+      "printedStrength": 10,
+      "file": "spear-10.png",
+      "atlasIndex": 29,
+      "ttsCardId": 129
+    },
+    {
+      "id": "ravenfeeder-1",
+      "name": "Ravenfeeder",
+      "category": "hero",
+      "printedStrength": 12,
+      "file": "ravenfeeder-1.png",
+      "atlasIndex": 30,
+      "ttsCardId": 130
+    },
+    {
+      "id": "ravenfeeder-2",
+      "name": "Ravenfeeder",
+      "category": "hero",
+      "printedStrength": 12,
+      "file": "ravenfeeder-2.png",
+      "atlasIndex": 31,
+      "ttsCardId": 131
+    },
+    {
+      "id": "ravenfeeder-3",
+      "name": "Ravenfeeder",
+      "category": "hero",
+      "printedStrength": 12,
+      "file": "ravenfeeder-3.png",
+      "atlasIndex": 32,
+      "ttsCardId": 132
+    },
+    {
+      "id": "berserker-1",
+      "name": "Berserker",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "berserker-1.png",
+      "atlasIndex": 33,
+      "ttsCardId": 133
+    },
+    {
+      "id": "berserker-2",
+      "name": "Berserker",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "berserker-2.png",
+      "atlasIndex": 34,
+      "ttsCardId": 134
+    },
+    {
+      "id": "berserker-3",
+      "name": "Berserker",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "berserker-3.png",
+      "atlasIndex": 35,
+      "ttsCardId": 135
+    },
+    {
+      "id": "shield-maiden-1",
+      "name": "Shield Maiden",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "shield-maiden-1.png",
+      "atlasIndex": 36,
+      "ttsCardId": 136
+    },
+    {
+      "id": "shield-maiden-2",
+      "name": "Shield Maiden",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "shield-maiden-2.png",
+      "atlasIndex": 37,
+      "ttsCardId": 137
+    },
+    {
+      "id": "shield-maiden-3",
+      "name": "Shield Maiden",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "shield-maiden-3.png",
+      "atlasIndex": 38,
+      "ttsCardId": 138
+    },
+    {
+      "id": "skald-1",
+      "name": "Skald",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "skald-1.png",
+      "atlasIndex": 39,
+      "ttsCardId": 139
+    },
+    {
+      "id": "skald-2",
+      "name": "Skald",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "skald-2.png",
+      "atlasIndex": 40,
+      "ttsCardId": 140
+    },
+    {
+      "id": "skald-3",
+      "name": "Skald",
+      "category": "hero",
+      "printedStrength": 11,
+      "file": "skald-3.png",
+      "atlasIndex": 41,
+      "ttsCardId": 141
+    }
+  ]
+}

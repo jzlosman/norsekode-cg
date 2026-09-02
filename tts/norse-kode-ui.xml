@@ -1,0 +1,72 @@
+<Defaults>
+  <Text color="#f4ead7" fontSize="16" outline="#241b17" outlineSize="1" />
+  <Button color="#6b3c26" textColor="#f4ead7" fontSize="15" />
+</Defaults>
+
+<Panel id="game-controls" width="460" height="300" position="665 340" color="#241b17F2" padding="16 16 14 14">
+  <VerticalLayout spacing="6">
+    <Text id="title" text="NORSE KODE" fontSize="26" color="#e9b85a" />
+    <Text id="status" text="Claim one side, then start the War." fontSize="18" />
+    <Text id="score" text="North 0/5 · South 0/5 · Clash 0–0" fontSize="16" color="#e9b85a" />
+    <Text id="phase-help" text="Choose North or South. In solo mode, the other side is controlled by the AI." fontSize="15" color="#d1c1a6" />
+
+    <VerticalLayout id="setup-controls" spacing="6" active="false">
+      <HorizontalLayout spacing="8" childForceExpandWidth="true">
+        <Button id="north-claim" text="CLAIM NORTH" onClick="claimNorthUi" tooltip="Claim the North side." />
+        <Button id="south-claim" text="CLAIM SOUTH" onClick="claimSouthUi" tooltip="Claim the South side." />
+      </HorizontalLayout>
+      <Button id="start-war" text="START WAR" onClick="startWarUi" tooltip="Start or restart the War." />
+    </VerticalLayout>
+
+    <HorizontalLayout id="formation-controls" spacing="8" childForceExpandWidth="true" active="false">
+      <Button id="north-commit" text="COMMIT NORTH" onClick="commitNorthUi" tooltip="Commit the hidden North formation." />
+      <Button id="south-commit" text="COMMIT SOUTH" onClick="commitSouthUi" tooltip="Commit the hidden South formation." />
+    </HorizontalLayout>
+
+    <VerticalLayout id="oath-controls" active="false">
+      <Button id="reveal-oaths" text="REVEAL BLOOD OATHS" onClick="revealOathsUi" tooltip="Reveal both players' Blood Oaths." />
+    </VerticalLayout>
+
+    <VerticalLayout id="resolution-controls" active="false">
+      <Button id="reveal-clash" text="REVEAL NEXT CLASH" onClick="revealNextClashUi" tooltip="Reveal and resolve the next Clash." />
+    </VerticalLayout>
+
+    <VerticalLayout id="skirmish-ready-controls" active="false">
+      <Button id="end-skirmish" text="END SKIRMISH" onClick="endSkirmishUi" tooltip="Score the Skirmish after checking the final Clash." />
+    </VerticalLayout>
+
+    <VerticalLayout id="skirmish-complete-controls" active="false">
+      <Button id="next-skirmish" text="NEXT SKIRMISH" onClick="nextSkirmishUi" tooltip="Begin the next Skirmish." />
+    </VerticalLayout>
+
+    <Text id="log" text="" fontSize="14" color="#d1c1a6" resizeTextForBestFit="false" />
+  </VerticalLayout>
+</Panel>
+
+<Panel id="north-oath-panel" width="560" height="150" position="615 -370" color="#241b17F2" padding="12 12 12 12" visibility="Invisible" active="false">
+  <VerticalLayout spacing="5">
+    <Text text="NORTH · BLOOD OATHS" fontSize="20" color="#e9b85a" />
+    <Text id="north-oath-status" text="No legal Blood Oaths in this formation." fontSize="14" color="#d1c1a6" />
+    <HorizontalLayout spacing="6" childForceExpandWidth="true">
+      <Button id="north-oath-1" text="SWEAR 1" onClick="toggleOath" />
+      <Button id="north-oath-2" text="SWEAR 2" onClick="toggleOath" />
+      <Button id="north-oath-3" text="SWEAR 3" onClick="toggleOath" />
+      <Button id="north-oath-4" text="SWEAR 4" onClick="toggleOath" />
+      <Button id="north-oath-5" text="SWEAR 5" onClick="toggleOath" />
+    </HorizontalLayout>
+  </VerticalLayout>
+</Panel>
+
+<Panel id="south-oath-panel" width="560" height="150" position="615 -370" color="#241b17F2" padding="12 12 12 12" visibility="Invisible" active="false">
+  <VerticalLayout spacing="5">
+    <Text text="SOUTH · BLOOD OATHS" fontSize="20" color="#e9b85a" />
+    <Text id="south-oath-status" text="No legal Blood Oaths in this formation." fontSize="14" color="#d1c1a6" />
+    <HorizontalLayout spacing="6" childForceExpandWidth="true">
+      <Button id="south-oath-1" text="SWEAR 1" onClick="toggleOath" />
+      <Button id="south-oath-2" text="SWEAR 2" onClick="toggleOath" />
+      <Button id="south-oath-3" text="SWEAR 3" onClick="toggleOath" />
+      <Button id="south-oath-4" text="SWEAR 4" onClick="toggleOath" />
+      <Button id="south-oath-5" text="SWEAR 5" onClick="toggleOath" />
+    </HorizontalLayout>
+  </VerticalLayout>
+</Panel>
