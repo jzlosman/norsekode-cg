@@ -1,5 +1,6 @@
 node_modules/
 dist/
+.worktrees/
 .tmp-card-assets/
 *.tsbuildinfo
 .DS_Store
