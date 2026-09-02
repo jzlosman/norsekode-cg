@@ -17,9 +17,58 @@ local function arrayKey(values)
 end
 
 local fakeObjects = {}
+local musicConsoleStub = { buttons = {}, description = "" }
+function musicConsoleStub.clearButtons() musicConsoleStub.buttons = {} end
+function musicConsoleStub.createButton(button) table.insert(musicConsoleStub.buttons, button) end
+function musicConsoleStub.getButtons() return musicConsoleStub.buttons end
+function musicConsoleStub.editButton(update)
+  local button = musicConsoleStub.buttons[(update.index or 0) + 1]
+  if not button then return end
+  for key, value in pairs(update) do if key ~= "index" then button[key] = value end end
+end
+function musicConsoleStub.setDescription(description) musicConsoleStub.description = description end
+fakeObjects["m00001"] = musicConsoleStub
+
 function getObjectFromGUID(guid)
   return fakeObjects[guid]
 end
+
+MUSIC_CONSOLE_GUID = "m00001"
+MUSIC_PLAYLIST = {
+  { url = "https://example.com/01.mp3", title = "First Track" },
+  { url = "https://example.com/02.mp3", title = "Second Track" },
+}
+Global = {}
+Player = {
+  White = { host = true },
+  Blue = { host = false },
+}
+local musicMessages = {}
+function broadcastToColor(message, color) table.insert(musicMessages, { message = message, color = color }) end
+Wait = { time = function(callback) callback() end }
+MusicPlayer = {
+  loaded = true,
+  player_status = "Stop",
+  shuffle = false,
+  playlist = {},
+  playlist_index = 1,
+  setPlaylistCalls = 0,
+  playCalls = 0,
+  pauseCalls = 0,
+  previousCalls = 0,
+  nextCalls = 0,
+}
+function MusicPlayer.setPlaylist(playlist)
+  MusicPlayer.playlist = playlist
+  MusicPlayer.playlist_index = 1
+  MusicPlayer.setPlaylistCalls = MusicPlayer.setPlaylistCalls + 1
+  MusicPlayer.player_status = "Ready"
+end
+function MusicPlayer.getCurrentAudioclip() return MusicPlayer.playlist[MusicPlayer.playlist_index] end
+function MusicPlayer.play() MusicPlayer.playCalls = MusicPlayer.playCalls + 1; MusicPlayer.player_status = "Play"; return true end
+function MusicPlayer.pause() MusicPlayer.pauseCalls = MusicPlayer.pauseCalls + 1; MusicPlayer.player_status = "Stop"; return true end
+function MusicPlayer.skipBack() MusicPlayer.previousCalls = MusicPlayer.previousCalls + 1; return true end
+function MusicPlayer.skipForward() MusicPlayer.nextCalls = MusicPlayer.nextCalls + 1; return true end
 
 local function exposeCard(id)
   fakeObjects[id] = {
@@ -154,6 +203,45 @@ function tests.compact_entry_cache()
   local resolution = resolveClashState(state, CARD_DATA, CONFIG, false)
   assertTrue(resolution.north.finalStrength < unsuppressedStrength, "Shield Wall should suppress the resolved compact entry")
   assertEqual(first.finalStrength, unsuppressedStrength, "Shield Wall must not mutate the cached compact entry")
+end
+
+function tests.music_console_controls()
+  MUSIC_STATE = { initialized = false, pendingPlay = false, refreshGeneration = 0 }
+  musicConsoleStub.buttons = {}
+  musicConsoleStub.description = ""
+  musicMessages = {}
+  MusicPlayer.player_status = "Stop"
+  MusicPlayer.shuffle = false
+  MusicPlayer.playlist = {}
+  MusicPlayer.setPlaylistCalls = 0
+  MusicPlayer.playCalls = 0
+  MusicPlayer.pauseCalls = 0
+  MusicPlayer.previousCalls = 0
+  MusicPlayer.nextCalls = 0
+
+  installMusicConsole()
+  assertEqual(#musicConsoleStub.buttons, 4, "music console must expose four readable controls")
+  assertEqual(MusicPlayer.setPlaylistCalls, 0, "loading the console must remain silent and leave the playlist untouched")
+  assertEqual(MusicPlayer.playCalls, 0, "loading the console must not autoplay")
+
+  musicTogglePlay(nil, "Blue")
+  assertEqual(MusicPlayer.setPlaylistCalls, 0, "non-host clicks must not initialize music")
+  assertEqual(#musicMessages, 1, "non-host clicks need permission feedback")
+
+  musicTogglePlay(nil, "White")
+  assertEqual(MusicPlayer.setPlaylistCalls, 1, "first host action must initialize the playlist once")
+  assertEqual(MusicPlayer.playCalls, 1, "host play must start the selected track")
+  assertTrue(string.find(musicConsoleStub.description, "First Track", 1, true) ~= nil, "console description must show the current track")
+
+  musicTogglePlay(nil, "White")
+  assertEqual(MusicPlayer.pauseCalls, 1, "second play toggle must pause")
+  musicPrevious(nil, "White")
+  musicNext(nil, "White")
+  assertEqual(MusicPlayer.previousCalls, 1, "previous control must call MusicPlayer")
+  assertEqual(MusicPlayer.nextCalls, 1, "next control must call MusicPlayer")
+  musicToggleShuffle(nil, "White")
+  assertTrue(MusicPlayer.shuffle, "shuffle control must toggle MusicPlayer.shuffle")
+  assertEqual(MusicPlayer.setPlaylistCalls, 1, "later controls must reuse the initialized playlist")
 end
 
 function tests.plan_generation()

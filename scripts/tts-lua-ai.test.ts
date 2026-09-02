@@ -6,6 +6,7 @@ const scenarios = [
   'live_rules_baseline',
   'pure_resolver',
   'compact_entry_cache',
+  'music_console_controls',
   'plan_generation',
   'skirmish_simulation',
   'fast_simulation_oracle',

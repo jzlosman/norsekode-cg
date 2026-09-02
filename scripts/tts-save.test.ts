@@ -79,14 +79,14 @@ describe('TTS save generation', () => {
   })
 
   it('adds a locked physical music console and embeds the ordered hosted playlist', () => {
-    const save = buildTtsSave({ assetBaseUrl, luaScript: '-- test lua', uiXml: '<!-- test ui -->' })
+    const save = buildTtsSave({ assetBaseUrl, ...loadSource() })
     const musicConsole = save.ObjectStates.find((object: any) => object.Nickname === 'Voiceless Edda Music Console')
 
     expect(musicConsole).toMatchObject({
       Name: 'Custom_Tile',
       GUID: 'm00001',
       Locked: true,
-      Transform: { posX: 4.6, posY: 1.1, posZ: 16, rotY: 0, scaleX: 1.8, scaleZ: 0.9 },
+      Transform: { posX: 4.6, posY: 1.1, posZ: 16, rotY: 0, scaleX: 0.8, scaleZ: 0.625 },
       CustomImage: { ImageURL: `${assetBaseUrl}norse-kode-music-console.png` },
     })
     expect(save.LuaScript).toContain('MUSIC_CONSOLE_GUID = "m00001"')
@@ -95,6 +95,17 @@ describe('TTS save generation', () => {
     expect(save.LuaScript).toContain('title = "Ginnungagap — The Yawning Silence"')
     expect(save.LuaScript).toContain(`url = "${assetBaseUrl}music/09-lif-and-lifthrasir-the-next-new-beginning.mp3"`)
     expect(save.LuaScript.indexOf('01-ginnungagap')).toBeLessThan(save.LuaScript.indexOf('09-lif-and-lifthrasir'))
+    expect(save.LuaScript).toContain('function installMusicConsole')
+    expect(save.LuaScript).toContain('function musicTogglePlay')
+    expect(save.LuaScript).toContain('function musicPrevious')
+    expect(save.LuaScript).toContain('function musicNext')
+    expect(save.LuaScript).toContain('function musicToggleShuffle')
+    expect(save.LuaScript).toContain('MusicPlayer.setPlaylist(MUSIC_PLAYLIST)')
+    expect(save.LuaScript).toContain('MusicPlayer.getCurrentAudioclip()')
+    expect(save.LuaScript).toContain('musicConsole.setDescription')
+    const onLoad = save.LuaScript.slice(save.LuaScript.indexOf('function onLoad'), save.LuaScript.indexOf('function onSave'))
+    expect(onLoad).toContain('installMusicConsole()')
+    expect(onLoad).not.toContain('MusicPlayer.play()')
 
     const overridden = buildTtsSave({
       assetUrls: {
@@ -224,7 +235,7 @@ describe('TTS save generation', () => {
 
   it('uses a readable screen-space control panel instead of 3D action buttons', () => {
     const save = buildTtsSave({ ...loadSource() })
-    const panelButtons = save.LuaScript.slice(save.LuaScript.indexOf('function installPanelButtons()'), save.LuaScript.indexOf('function updateOathButton'))
+    const panelButtons = save.LuaScript.slice(save.LuaScript.indexOf('function installPanelButtons()'), save.LuaScript.indexOf('function musicHostGuard'))
 
     expect(save.XmlUI).toContain('id="game-controls"')
     expect(save.XmlUI).toContain('onClick="startWarUi"')

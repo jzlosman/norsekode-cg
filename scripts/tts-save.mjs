@@ -186,7 +186,7 @@ const playerMat = ({ guid, nickname, z, rotationY, description, imageUrl }) => (
 
 const musicConsole = (imageUrl) => ({
   Name: 'Custom_Tile',
-  Transform: transform(4.6, 1.1, 16, 1.8, 0.12, 0.9, 0, 0),
+  Transform: transform(4.6, 1.1, 16, 0.8, 0.12, 0.625, 0, 0),
   Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: true },
   Nickname: 'Voiceless Edda Music Console',
   Description: 'Music · Ready · Host controls',

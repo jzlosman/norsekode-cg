@@ -158,6 +158,13 @@ end
 
 STATE = newState()
 AI_FORMATION_SEARCH = nil
+MUSIC_STATE = {
+  initialized = false,
+  pendingPlay = false,
+  shuffle = false,
+  error = nil,
+  lastRefreshSecond = nil,
+}
 
 function nextVisualGeneration()
   STATE.visualGeneration = (STATE.visualGeneration or 0) + 1
@@ -2275,6 +2282,150 @@ function installPanelButtons()
   if host then host.clearButtons() end
 end
 
+function musicHostGuard(color)
+  if isHost(color) then return true end
+  if color then broadcastToColor("Only the host can control the music.", color, { 1, 0.35, 0.25 }) end
+  return false
+end
+
+function currentMusicTitle()
+  if not MUSIC_STATE.initialized then return "Ready" end
+  local ok, clip = pcall(function() return MusicPlayer.getCurrentAudioclip() end)
+  if ok and clip and clip.title and clip.title ~= "" then return clip.title end
+  return "Voiceless Edda"
+end
+
+function musicStatusLabel()
+  if MUSIC_STATE.error then return "Error" end
+  local status = MusicPlayer.player_status or "Stop"
+  if status == "Play" then return "Playing" end
+  if status == "Loading" or (MUSIC_STATE.initialized and MusicPlayer.loaded == false) then return "Loading" end
+  if MUSIC_STATE.initialized then return "Paused" end
+  return "Host controls"
+end
+
+function refreshMusicConsole()
+  local musicConsole = getObjectFromGUID(MUSIC_CONSOLE_GUID)
+  if not musicConsole then return false end
+  local title = currentMusicTitle()
+  local status = musicStatusLabel()
+  local description = "Music · " .. title .. " · " .. status
+  if MUSIC_STATE.initialized then description = description .. " · Shuffle " .. (MusicPlayer.shuffle and "on" or "off") end
+  if MUSIC_STATE.error then description = description .. ": " .. MUSIC_STATE.error end
+  musicConsole.setDescription(description)
+
+  if #musicConsole.getButtons() < 4 then return true end
+  local playing = MusicPlayer.player_status == "Play"
+  local loading = status == "Loading"
+  local idleColor = { 0.10, 0.08, 0.06, 0.92 }
+  local activeColor = { 0.10, 0.30, 0.23, 0.96 }
+  local loadingColor = { 0.46, 0.30, 0.08, 0.96 }
+  local errorColor = { 0.42, 0.12, 0.10, 0.96 }
+  local transportColor = MUSIC_STATE.error and errorColor or loading and loadingColor or idleColor
+  local tooltipSuffix = MUSIC_STATE.initialized and (" Current track: " .. title .. ".") or " Loads the Voiceless Edda playlist on first use."
+  musicConsole.editButton({ index = 0, color = transportColor, tooltip = "Previous track." .. tooltipSuffix })
+  musicConsole.editButton({ index = 1, label = playing and "PAUSE" or "PLAY", color = MUSIC_STATE.error and errorColor or loading and loadingColor or playing and activeColor or idleColor, tooltip = (playing and "Pause music." or "Play music.") .. tooltipSuffix })
+  musicConsole.editButton({ index = 2, color = transportColor, tooltip = "Next track." .. tooltipSuffix })
+  musicConsole.editButton({ index = 3, label = MusicPlayer.shuffle and "SHUF ON" or "SHUF OFF", color = MusicPlayer.shuffle and activeColor or idleColor, tooltip = "Toggle playlist shuffle." .. tooltipSuffix })
+  return true
+end
+
+function ensureMusicPlaylist()
+  if MUSIC_STATE.initialized then return true end
+  local ok, message = pcall(function() MusicPlayer.setPlaylist(MUSIC_PLAYLIST) end)
+  if not ok then
+    MUSIC_STATE.error = tostring(message)
+    refreshMusicConsole()
+    return false
+  end
+  MUSIC_STATE.initialized = true
+  MUSIC_STATE.error = nil
+  MusicPlayer.shuffle = MUSIC_STATE.shuffle == true
+  refreshMusicConsole()
+  return true
+end
+
+function attemptPendingMusicPlay()
+  if not MUSIC_STATE.pendingPlay then return end
+  local ok, playing = pcall(function() return MusicPlayer.play() end)
+  if ok and playing then
+    MUSIC_STATE.pendingPlay = false
+    MUSIC_STATE.error = nil
+  elseif not ok then
+    MUSIC_STATE.pendingPlay = false
+    MUSIC_STATE.error = tostring(playing)
+  end
+  refreshMusicConsole()
+end
+
+function musicTogglePlay(object, color)
+  if not musicHostGuard(color) then return end
+  if MusicPlayer.player_status == "Play" then
+    MUSIC_STATE.pendingPlay = false
+    local ok, message = pcall(function() return MusicPlayer.pause() end)
+    if not ok then MUSIC_STATE.error = tostring(message) end
+    refreshMusicConsole()
+    return
+  end
+  if not ensureMusicPlaylist() then return end
+  MUSIC_STATE.pendingPlay = true
+  attemptPendingMusicPlay()
+end
+
+function musicPrevious(object, color)
+  if not musicHostGuard(color) or not ensureMusicPlaylist() then return end
+  local wasPlaying = MusicPlayer.player_status == "Play" or MUSIC_STATE.pendingPlay
+  local ok, message = pcall(function() return MusicPlayer.skipBack() end)
+  if not ok then MUSIC_STATE.error = tostring(message) end
+  if wasPlaying then MUSIC_STATE.pendingPlay = true; attemptPendingMusicPlay() else refreshMusicConsole() end
+end
+
+function musicNext(object, color)
+  if not musicHostGuard(color) or not ensureMusicPlaylist() then return end
+  local wasPlaying = MusicPlayer.player_status == "Play" or MUSIC_STATE.pendingPlay
+  local ok, message = pcall(function() return MusicPlayer.skipForward() end)
+  if not ok then MUSIC_STATE.error = tostring(message) end
+  if wasPlaying then MUSIC_STATE.pendingPlay = true; attemptPendingMusicPlay() else refreshMusicConsole() end
+end
+
+function musicToggleShuffle(object, color)
+  if not musicHostGuard(color) or not ensureMusicPlaylist() then return end
+  MusicPlayer.shuffle = not MusicPlayer.shuffle
+  MUSIC_STATE.shuffle = MusicPlayer.shuffle
+  refreshMusicConsole()
+end
+
+function installMusicConsole()
+  local musicConsole = getObjectFromGUID(MUSIC_CONSOLE_GUID)
+  if not musicConsole then return false end
+  musicConsole.clearButtons()
+  local controls = {
+    { click = "musicPrevious", label = "|<", x = -1.45, tooltip = "Previous track." },
+    { click = "musicTogglePlay", label = "PLAY", x = -0.48, tooltip = "Play music." },
+    { click = "musicNext", label = ">|", x = 0.48, tooltip = "Next track." },
+    { click = "musicToggleShuffle", label = "SHUF OFF", x = 1.45, tooltip = "Toggle playlist shuffle." },
+  }
+  for _, control in ipairs(controls) do
+    musicConsole.createButton({
+      click_function = control.click,
+      function_owner = Global,
+      label = control.label,
+      position = { x = control.x, y = 0.22, z = 0.30 },
+      rotation = { x = 0, y = 0, z = 0 },
+      width = 620,
+      height = 410,
+      font_size = 150,
+      color = { 0.10, 0.08, 0.06, 0.92 },
+      hover_color = { 0.25, 0.18, 0.09, 0.96 },
+      press_color = { 0.36, 0.25, 0.10, 1 },
+      font_color = { 0.92, 0.87, 0.76, 1 },
+      tooltip = control.tooltip .. " Loads the Voiceless Edda playlist on first use.",
+    })
+  end
+  refreshMusicConsole()
+  return true
+end
+
 function updateOathButton(side, index)
   local id = side .. "-oath-" .. index
   local guid = STATE.formation[side][index]
@@ -2424,8 +2575,17 @@ function onLoad(savedData)
   if not STATE.resultTexts then STATE.resultTexts = {} end
   installBoardButtons()
   installPanelButtons()
+  installMusicConsole()
   updateUi()
   scheduleAiTurn(10)
+end
+
+function onUpdate()
+  if not MUSIC_STATE.initialized then return end
+  local now = os.time()
+  if MUSIC_STATE.lastRefreshSecond == now then return end
+  MUSIC_STATE.lastRefreshSecond = now
+  if MUSIC_STATE.pendingPlay then attemptPendingMusicPlay() else refreshMusicConsole() end
 end
 
 function onSave()
