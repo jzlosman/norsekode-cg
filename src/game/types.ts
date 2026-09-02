@@ -1,7 +1,7 @@
 export type PlayerId = 'left' | 'right'
 export type WeaponType = 'axe' | 'sword' | 'spear' | 'none'
 export type CardCategory = 'standard' | 'bloodsworn' | 'shield_wall' | 'hero' | 'god'
-export type AbilityType = 'none' | 'ravenfeeder' | 'berserker' | 'shield_maiden' | 'skald' | 'placeholder'
+export type AbilityType = 'none' | 'ravenfeeder' | 'berserker' | 'shield_maiden' | 'jarl' | 'placeholder'
 export type Phase =
   | 'WAR_SETUP'
   | 'SKIRMISH_SETUP'
@@ -43,9 +43,9 @@ export interface GameConfig {
   bloodswornAddsChainBonuses: boolean
   consumedAbilityActivates: boolean
   shieldMaidenVengeanceCap: number | null
-  skaldWinBonus: number
-  skaldTieBonus: number
-  skaldLossBonus: number
+  jarlWinBonus: number
+  jarlTieBonus: number
+  jarlLossBonus: number
   berserkerPenaltySuppressesAbilities: boolean
   tieBehavior: 'no-winner' | 'left-wins'
   godCardsEnabled: boolean
@@ -80,7 +80,7 @@ export interface ClashEntry {
   isBerserker: boolean
   isRavenfeeder: boolean
   isShieldMaiden: boolean
-  isSkald: boolean
+  isJarl: boolean
 }
 
 export interface ClashResolution {

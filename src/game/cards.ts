@@ -38,7 +38,7 @@ const makeHeroCards = (): Card[] => {
     { id: 'ravenfeeder', name: 'Ravenfeeder', printedStrength: 12, abilityType: 'ravenfeeder' },
     { id: 'berserker', name: 'Berserker', printedStrength: 11, abilityType: 'berserker' },
     { id: 'shield-maiden', name: 'Shield Maiden', printedStrength: 11, abilityType: 'shield_maiden' },
-    { id: 'skald', name: 'Skald', printedStrength: 11, abilityType: 'skald' },
+    { id: 'jarl', name: 'Jarl', printedStrength: 11, abilityType: 'jarl' },
   ]
 
   return heroes.flatMap((hero) => Array.from({ length: 3 }, (_, index) => ({

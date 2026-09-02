@@ -103,7 +103,7 @@ const buildEntry = ({ formation, cursor, oaths, chainBonuses, suppressChainAt = 
   })
 
   const abilityCards = cards.filter((_, index) => index === 0 || config.consumedAbilityActivates)
-  const isSkald = primary.abilityType === 'skald' || Boolean(canSwear && cards[1]?.abilityType === 'skald')
+  const isJarl = primary.abilityType === 'jarl' || Boolean(canSwear && cards[1]?.abilityType === 'jarl')
   return {
     primaryIndex: cursor,
     endIndex: cursor + cards.length - 1,
@@ -122,7 +122,7 @@ const buildEntry = ({ formation, cursor, oaths, chainBonuses, suppressChainAt = 
     isBerserker: abilityCards.some((card) => card.abilityType === 'berserker'),
     isRavenfeeder: abilityCards.some((card) => card.abilityType === 'ravenfeeder'),
     isShieldMaiden,
-    isSkald,
+    isJarl,
   }
 }
 
@@ -134,7 +134,7 @@ const entrySummary = (entry: ClashEntry, logs: string[]): void => {
     logs.push(`${item.cardName}: ${item.printedStrength}${chainText}${abilityText} = ${item.effectiveStrength}${suppressedText}`)
   })
   if (entry.vengeanceBonus > 0) logs.push(`Shield Maiden Vengeance adds +${entry.vengeanceBonus}.`)
-  if (entry.songBonus > 0) logs.push(`Responsive Song adds +${entry.songBonus}.`)
+  if (entry.songBonus > 0) logs.push(`Jarl Lead by Example adds +${entry.songBonus}.`)
   if (entry.isBloodswornCombo) {
     logs.push(`Bloodsworn combined with ${entry.cards[1].name}; ${entry.finalStrength} total. ${entry.cards[1].name} is consumed.`)
   }
@@ -189,18 +189,18 @@ const addHeroCarryover = (
   }
 
   const songFor = (side: PlayerId, entry: ClashEntry | null): number => {
-    if (!entry?.isSkald || suppressedSongSides[side]) return 0
-    if (resolution.winner === side) return config.skaldWinBonus
-    if (resolution.winner === 'tie') return config.skaldTieBonus
-    return config.skaldLossBonus
+    if (!entry?.isJarl || suppressedSongSides[side]) return 0
+    if (resolution.winner === side) return config.jarlWinBonus
+    if (resolution.winner === 'tie') return config.jarlTieBonus
+    return config.jarlLossBonus
   }
 
   const nextSongBonuses = {
     left: songFor('left', resolution.leftEntry),
     right: songFor('right', resolution.rightEntry),
   }
-  if (nextSongBonuses.left > 0) resolution.logs.push(`Skald Responsive Song queues +${nextSongBonuses.left} for Player 1's next entry.`)
-  if (nextSongBonuses.right > 0) resolution.logs.push(`Skald Responsive Song queues +${nextSongBonuses.right} for Player 2's next entry.`)
+  if (nextSongBonuses.left > 0) resolution.logs.push(`Jarl Lead by Example queues +${nextSongBonuses.left} for Player 1's next entry.`)
+  if (nextSongBonuses.right > 0) resolution.logs.push(`Jarl Lead by Example queues +${nextSongBonuses.right} for Player 2's next entry.`)
 
   return {
     ...resolution,

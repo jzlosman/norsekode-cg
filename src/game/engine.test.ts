@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { BATTLE_CARDS } from './cards'
 import { DEFAULT_CONFIG } from './config'
 import { beginSkirmish, computeChainBonuses, createWar, draftCard, lockFormation, reorderFormation, revealOaths, resolveClash, resolveCurrentClash } from './engine'
 import type { Card } from './types'
@@ -262,13 +263,25 @@ describe('hero momentum abilities', () => {
     expect(result.nextDefeatMargins).toEqual({ left: 0, right: 0 })
   })
 
+  it('publishes Jarl cards instead of Skald cards', () => {
+    const jarls = BATTLE_CARDS.filter((battleCard) => battleCard.abilityType === 'jarl')
+
+    expect(jarls).toHaveLength(3)
+    expect(jarls.map(({ id, name, abilityType }) => ({ id, name, abilityType }))).toEqual([
+      { id: 'jarl-1', name: 'Jarl', abilityType: 'jarl' },
+      { id: 'jarl-2', name: 'Jarl', abilityType: 'jarl' },
+      { id: 'jarl-3', name: 'Jarl', abilityType: 'jarl' },
+    ])
+    expect(BATTLE_CARDS.some((battleCard) => battleCard.name === 'Skald' || battleCard.abilityType === ('skald' as Card['abilityType']))).toBe(false)
+  })
+
   it.each([
     ['win', 1, 3],
     ['tie', 11, 2],
     ['loss', 12, 1],
-  ])('queues Skald Responsive Song after a %s', (_, opposingStrength, expectedBonus) => {
+  ])('queues Jarl Lead by Example after a %s', (_, opposingStrength, expectedBonus) => {
     const result = resolveClash({
-      leftFormation: [card({ id: 'skald', name: 'Skald', weaponType: 'none', printedStrength: 11, abilityType: 'skald', isHero: true })],
+      leftFormation: [card({ id: 'jarl', name: 'Jarl', weaponType: 'none', printedStrength: 11, abilityType: 'jarl', isHero: true })],
       rightFormation: [card({ id: `opponent-${opposingStrength}`, weaponType: 'none', printedStrength: opposingStrength })],
       leftCursor: 0,
       rightCursor: 0,
@@ -280,12 +293,12 @@ describe('hero momentum abilities', () => {
     })
 
     expect(result.nextSongBonuses.left).toBe(expectedBonus)
-    expect(result.logs.join(' ')).toContain(`Responsive Song queues +${expectedBonus}`)
+    expect(result.logs.join(' ')).toContain(`Jarl Lead by Example queues +${expectedBonus}`)
   })
 
-  it('suppresses a penalized Skald song unless penalty ability suppression is disabled', () => {
+  it('suppresses a penalized Jarl bonus unless penalty ability suppression is disabled', () => {
     const input = {
-      leftFormation: [card({ id: 'skald', name: 'Skald', weaponType: 'none', printedStrength: 11, abilityType: 'skald' as const, isHero: true })],
+      leftFormation: [card({ id: 'jarl', name: 'Jarl', weaponType: 'none', printedStrength: 11, abilityType: 'jarl' as const, isHero: true })],
       rightFormation: [card({ id: 'a1', printedStrength: 1 })],
       leftCursor: 0,
       rightCursor: 0,
@@ -304,13 +317,13 @@ describe('hero momentum abilities', () => {
     expect(allowed.nextSongBonuses.left).toBe(1)
   })
 
-  it('triggers Skald when Bloodsworn consumes him and applies the song to the next entry', () => {
+  it('triggers Jarl when Bloodsworn consumes him and applies Lead by Example once', () => {
     const bloodsworn = card({ id: 'a5', category: 'bloodsworn', printedStrength: 5 })
-    const skald = card({ id: 'skald', name: 'Skald', weaponType: 'none', printedStrength: 11, abilityType: 'skald', isHero: true })
+    const jarl = card({ id: 'jarl', name: 'Jarl', weaponType: 'none', printedStrength: 11, abilityType: 'jarl', isHero: true })
     const nextWarrior = card({ id: 'a4', printedStrength: 4 })
-    const leftFormation = [bloodsworn, skald, nextWarrior]
+    const leftFormation = [bloodsworn, jarl, nextWarrior]
     const rightFormation = [card({ id: 's10', weaponType: 'sword', printedStrength: 10 }), card({ id: 's8', weaponType: 'sword', printedStrength: 8 })]
-    const song = resolveClash({
+    const lead = resolveClash({
       leftFormation,
       rightFormation,
       leftCursor: 0,
@@ -322,30 +335,31 @@ describe('hero momentum abilities', () => {
       config: DEFAULT_CONFIG,
     })
 
-    expect(song.leftEntry!.isSkald).toBe(true)
-    expect(song.winner).toBe('left')
-    expect(song.nextSongBonuses.left).toBe(3)
+    expect(lead.leftEntry!.isJarl).toBe(true)
+    expect(lead.winner).toBe('left')
+    expect(lead.nextSongBonuses.left).toBe(3)
 
     const inspired = resolveClash({
       leftFormation,
       rightFormation,
-      leftCursor: song.nextLeftCursor,
-      rightCursor: song.nextRightCursor,
+      leftCursor: lead.nextLeftCursor,
+      rightCursor: lead.nextRightCursor,
       leftOaths: { a5: true },
       rightOaths: {},
-      leftChainBreaks: song.nextLeftChainBreaks,
-      rightChainBreaks: song.nextRightChainBreaks,
-      songBonuses: song.nextSongBonuses,
-      previousDefeatMargins: song.nextDefeatMargins,
+      leftChainBreaks: lead.nextLeftChainBreaks,
+      rightChainBreaks: lead.nextRightChainBreaks,
+      songBonuses: lead.nextSongBonuses,
+      previousDefeatMargins: lead.nextDefeatMargins,
       config: DEFAULT_CONFIG,
     })
 
     expect(inspired.leftEntry!.breakdown[0].abilityBonus).toBe(3)
     expect(inspired.leftEntry!.finalStrength).toBe(7)
-    expect(inspired.logs.join(' ')).toContain('Responsive Song adds +3')
+    expect(inspired.nextSongBonuses.left).toBe(0)
+    expect(inspired.logs.join(' ')).toContain('Jarl Lead by Example adds +3')
   })
 
-  it('stacks Responsive Song with Vengeance and keeps both through Shield Wall suppression', () => {
+  it('stacks Lead by Example with Vengeance and keeps both through Shield Wall suppression', () => {
     const shieldMaiden = card({ id: 'shield-maiden', name: 'Shield Maiden', weaponType: 'none', printedStrength: 11, abilityType: 'shield_maiden', isHero: true })
     const stacked = resolveClash({
       leftFormation: [shieldMaiden],
