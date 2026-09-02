@@ -23,6 +23,10 @@ npm run build:tts
 
 See [`tts/README.md`](tts/README.md) for asset hosting, TTS import, and multiplayer instructions.
 
+## Source and asset hosting
+
+The public [`jzlosman/norsekode-cg`](https://github.com/jzlosman/norsekode-cg) repository contains the browser prototype, TTS controller, reproducible card sources, generated deck atlas, board textures, player mats, markers, and card back. TTS saves use raw GitHub asset URLs pinned to a specific commit for stable multiplayer loading.
+
 ## Card artwork
 
 The generated deck lives in `public/assets/cards/` as 42 individual 750×1050 PNG fronts plus `card-back.png`. Source illustrations are in `public/assets/card-art/`; the layout is reproducible with ImageMagick:

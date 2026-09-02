@@ -6,7 +6,7 @@ import { buildTtsSave, loadSource, DEFAULT_ASSET_BASE_URL } from './tts-save.mjs
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outputDir = join(root, 'tts/build')
 const outputPath = join(outputDir, 'Norse Kode.json')
-const configuredUrls = JSON.parse(readFileSync(join(root, 'tts/steam-cloud-assets.json'), 'utf8'))
+const configuredUrls = JSON.parse(readFileSync(join(root, 'tts/asset-urls.json'), 'utf8'))
 const assetBaseUrl = process.env.NORSE_KODE_ASSET_BASE_URL
 const envUrls = {
   table: process.env.NORSE_KODE_TABLE_URL,

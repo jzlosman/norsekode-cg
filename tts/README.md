@@ -14,6 +14,7 @@ This directory contains the multiplayer tabletop version of Norse Kode. TTS is t
 - `assets/norse-kode-player-mat.png` — composed full player battle mat with card slots, ordered Blood Oath spaces, Clash spaces, and five-win track
 - `assets/norse-clash-token.png` / `assets/norse-skirmish-token.png` — generated thematic combat markers
 - `assets/oath-yes.png` / `assets/oath-no.png` — generated red Blood Oath marker artwork
+- `asset-urls.json` — immutable public URLs baked into the generated save
 - `build/Norse Kode.json` — generated TTS save file
 - `PLAYTEST_CHECKLIST.md` — recommended multiplayer test cases
 
@@ -25,7 +26,9 @@ From the repository root:
 npm run build:tts
 ```
 
-The default save uses the Steam Cloud URLs in `tts/steam-cloud-assets.json` for the table, cards, player mat, combat markers, and oath markers. Provide URL overrides with either one shared base URL:
+The default save uses immutable raw GitHub URLs from `tts/asset-urls.json` for the table, cards, player mat, combat markers, and oath markers. They point to the public [`jzlosman/norsekode-cg`](https://github.com/jzlosman/norsekode-cg) repository and are pinned to an asset commit so later changes cannot silently alter an existing TTS save.
+
+When assets change, regenerate them, commit and push that asset revision, replace the commit hash in `asset-urls.json`, rebuild the save, and commit the updated configuration. Provide temporary URL overrides with either one shared base URL:
 
 ```bash
 NORSE_KODE_ASSET_BASE_URL=https://example.com/norse-kode/ npm run build:tts
