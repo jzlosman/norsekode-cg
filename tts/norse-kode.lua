@@ -18,9 +18,9 @@ CONFIG = {
   bloodswornAddsChainBonuses = true,
   consumedAbilityActivates = false,
   shieldMaidenVengeanceCap = nil,
-  skaldWinBonus = 3,
-  skaldTieBonus = 2,
-  skaldLossBonus = 1,
+  jarlWinBonus = 3,
+  jarlTieBonus = 2,
+  jarlLossBonus = 1,
   soloMode = true,
   aiNearOptimalTolerance = 0.03,
   aiWorstCaseWeight = 0.15,
@@ -111,7 +111,7 @@ function buildCardData()
     { id = "ravenfeeder", name = "Ravenfeeder", strength = 12, ability = "ravenfeeder" },
     { id = "berserker", name = "Berserker", strength = 11, ability = "berserker" },
     { id = "shield-maiden", name = "Shield Maiden", strength = 11, ability = "shield_maiden" },
-    { id = "skald", name = "Skald", strength = 11, ability = "skald" },
+    { id = "jarl", name = "Jarl", strength = 11, ability = "jarl" },
   }
   for _, hero in ipairs(heroes) do
     for copy = 1, 3 do
@@ -126,6 +126,9 @@ function buildCardData()
       }
     end
   end
+  for copy = 1, 3 do
+    cards["skald-" .. copy] = cards["jarl-" .. copy]
+  end
   return cards
 end
 
@@ -134,7 +137,7 @@ ALL_CARD_IDS = {}
 for _, weapon in ipairs({ "axe", "sword", "spear" }) do
   for rank = 1, 10 do table.insert(ALL_CARD_IDS, weapon .. "-" .. rank) end
 end
-for _, hero in ipairs({ "ravenfeeder", "berserker", "shield-maiden", "skald" }) do
+for _, hero in ipairs({ "ravenfeeder", "berserker", "shield-maiden", "jarl" }) do
   for copy = 1, 3 do table.insert(ALL_CARD_IDS, hero .. "-" .. copy) end
 end
 
@@ -565,7 +568,7 @@ function createCompactEntry(formation, oaths, cursor, chainBreaks, cards, config
     isBerserker = primary.ability == "berserker" or (consumedAbilityActive and partner.ability == "berserker"),
     isRavenfeeder = primary.ability == "ravenfeeder" or (consumedAbilityActive and partner.ability == "ravenfeeder"),
     isShieldMaiden = primary.ability == "shield_maiden",
-    isSkald = primary.ability == "skald" or (partner ~= nil and partner.ability == "skald"),
+    isJarl = primary.ability == "jarl" or (partner ~= nil and partner.ability == "jarl"),
   }
 end
 
@@ -750,7 +753,7 @@ function entrySummary(entry, logs)
     table.insert(logs, item.cardName .. ": " .. item.printedStrength .. chainText .. abilityText .. " = " .. item.effectiveStrength .. suppressedText)
   end
   if (entry.vengeanceBonus or 0) > 0 then table.insert(logs, "Shield Maiden Vengeance adds +" .. entry.vengeanceBonus .. ".") end
-  if (entry.songBonus or 0) > 0 then table.insert(logs, "Responsive Song adds +" .. entry.songBonus .. ".") end
+  if (entry.songBonus or 0) > 0 then table.insert(logs, "Jarl Lead by Example adds +" .. entry.songBonus .. ".") end
   if entry.isBloodswornCombo then
     table.insert(logs, "Bloodsworn combined with " .. entry.cards[2].name .. "; " .. entry.finalStrength .. " total. " .. entry.cards[2].name .. " is consumed.")
   end
@@ -866,19 +869,19 @@ function addHeroCarryover(result, config, includeLogs, suppressedSongSides)
   local songs = { north = 0, south = 0 }
   for _, side in ipairs({ "north", "south" }) do
     local entry = result[side]
-    if entry and entry.isSkald and not (suppressedSongSides and suppressedSongSides[side]) then
+    if entry and entry.isJarl and not (suppressedSongSides and suppressedSongSides[side]) then
       if result.winner == side then
-        songs[side] = rules.skaldWinBonus
+        songs[side] = rules.jarlWinBonus
       elseif result.winner == "tie" then
-        songs[side] = rules.skaldTieBonus
+        songs[side] = rules.jarlTieBonus
       else
-        songs[side] = rules.skaldLossBonus
+        songs[side] = rules.jarlLossBonus
       end
     end
   end
   if includeLogs then
-    if songs.north > 0 then table.insert(result.logs, "Skald Responsive Song queues +" .. songs.north .. " for North's next entry.") end
-    if songs.south > 0 then table.insert(result.logs, "Skald Responsive Song queues +" .. songs.south .. " for South's next entry.") end
+    if songs.north > 0 then table.insert(result.logs, "Jarl Lead by Example queues +" .. songs.north .. " for North's next entry.") end
+    if songs.south > 0 then table.insert(result.logs, "Jarl Lead by Example queues +" .. songs.south .. " for South's next entry.") end
   end
   result.nextDefeatMargins = margins
   result.nextSongBonuses = songs
@@ -1264,11 +1267,11 @@ function simulateSkirmish(northPlan, southPlan, cards, config)
     end
     local nextNorthSongBonus = 0
     local nextSouthSongBonus = 0
-    if north and north.isSkald and not northSongSuppressed then
-      nextNorthSongBonus = winner == "north" and rules.skaldWinBonus or winner == "tie" and rules.skaldTieBonus or rules.skaldLossBonus
+    if north and north.isJarl and not northSongSuppressed then
+      nextNorthSongBonus = winner == "north" and rules.jarlWinBonus or winner == "tie" and rules.jarlTieBonus or rules.jarlLossBonus
     end
-    if south and south.isSkald and not southSongSuppressed then
-      nextSouthSongBonus = winner == "south" and rules.skaldWinBonus or winner == "tie" and rules.skaldTieBonus or rules.skaldLossBonus
+    if south and south.isJarl and not southSongSuppressed then
+      nextSouthSongBonus = winner == "south" and rules.jarlWinBonus or winner == "tie" and rules.jarlTieBonus or rules.jarlLossBonus
     end
 
     northCursor = nextNorthCursor

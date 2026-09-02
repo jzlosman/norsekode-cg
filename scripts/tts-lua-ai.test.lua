@@ -32,7 +32,7 @@ for _, id in ipairs({
   "axe-1", "axe-2", "axe-3", "axe-5", "axe-8", "axe-9", "axe-10",
   "sword-1", "sword-2", "sword-3", "sword-9", "sword-10",
   "spear-1", "spear-2", "spear-3", "spear-9", "spear-10",
-  "berserker-1", "shield-maiden-1", "skald-1",
+  "berserker-1", "shield-maiden-1", "jarl-1", "skald-1",
 }) do
   exposeCard(id)
 end
@@ -46,6 +46,43 @@ local function plan(formation, swornIds)
 end
 
 local tests = {}
+
+function tests.jarl_metadata_and_legacy_aliases()
+  assertEqual(CONFIG.jarlWinBonus, 3, "Jarl win bonus changed")
+  assertEqual(CONFIG.jarlTieBonus, 2, "Jarl tie bonus changed")
+  assertEqual(CONFIG.jarlLossBonus, 1, "Jarl loss bonus changed")
+  assertEqual(#ALL_CARD_IDS, 42, "legacy aliases must not add cards to the deck")
+
+  for copy = 1, 3 do
+    local jarlId = "jarl-" .. copy
+    local legacyId = "skald-" .. copy
+    local jarl = CARD_DATA[jarlId]
+    assertTrue(jarl ~= nil, jarlId .. " metadata must exist")
+    assertEqual(jarl.id, jarlId, "Jarl metadata id changed")
+    assertEqual(jarl.name, "Jarl", "Jarl metadata name changed")
+    assertEqual(jarl.ability, "jarl", "Jarl metadata ability changed")
+    assertEqual(jarl.strength, 11, "Jarl metadata Strength changed")
+    assertTrue(CARD_DATA[legacyId] == jarl, legacyId .. " must alias the corresponding Jarl metadata")
+    assertEqual(ALL_CARD_IDS[39 + copy], jarlId, "Jarl must keep the former Skald deck slot")
+  end
+
+  for _, id in ipairs(ALL_CARD_IDS) do
+    assertTrue(string.sub(id, 1, 6) ~= "skald-", "legacy aliases must not enter the generated deck")
+  end
+
+  local legacyState = {
+    formation = { north = { "skald-1" }, south = { "axe-1" } },
+    oaths = { north = {}, south = {} },
+    cursor = { north = 1, south = 1 },
+    chainBreaks = { north = {}, south = {} },
+    penalties = { north = false, south = false },
+    previousDefeatMargins = { north = 0, south = 0 },
+    songBonuses = { north = 0, south = 0 },
+  }
+  local legacy = resolveClashState(legacyState, CARD_DATA, CONFIG, true)
+  assertTrue(legacy.north.isJarl, "legacy Skald GMNotes must activate Jarl")
+  assertEqual(legacy.nextSongBonuses.north, 3, "legacy Skald GMNotes must preserve Jarl mechanics")
+end
 
 function tests.live_rules_baseline()
   STATE = newState()
@@ -153,7 +190,7 @@ end
 
 function tests.skirmish_simulation()
   assertTrue(type(simulateSkirmish) == "function", "simulateSkirmish must exist")
-  local north = plan({ "axe-10", "sword-10", "spear-10", "shield-maiden-1", "skald-1" })
+  local north = plan({ "axe-10", "sword-10", "spear-10", "shield-maiden-1", "jarl-1" })
   local south = plan({ "axe-1", "sword-1", "spear-1", "axe-2", "sword-2" })
   local result = simulateSkirmish(north, south, CARD_DATA, CONFIG)
 
@@ -207,8 +244,8 @@ function tests.fast_simulation_oracle()
     end
   end
 
-  local momentumNorth = generateFormationPlans({ "axe-5", "skald-1", "shield-maiden-1", "axe-6", "berserker-1" }, CARD_DATA)
-  local momentumSouth = generateFormationPlans({ "sword-5", "skald-2", "shield-maiden-2", "sword-6", "ravenfeeder-1" }, CARD_DATA)
+  local momentumNorth = generateFormationPlans({ "axe-5", "jarl-1", "shield-maiden-1", "axe-6", "berserker-1" }, CARD_DATA)
+  local momentumSouth = generateFormationPlans({ "sword-5", "jarl-2", "shield-maiden-2", "sword-6", "ravenfeeder-1" }, CARD_DATA)
   for sample = 1, 250 do
     local north = momentumNorth[((sample * 43) % #momentumNorth) + 1]
     local south = momentumSouth[((sample * sample * 19 + sample * 71) % #momentumSouth) + 1]
@@ -253,7 +290,7 @@ function tests.simulation_special_rules()
   assertEqual(raven.south.finalStrength, 12, "weapon chain should create the Ravenfeeder tie")
   assertEqual(raven.winner, "south", "weaponed warrior must defeat Ravenfeeder on an exact tie")
 
-  local strongSouth = plan({ "axe-10", "sword-10", "spear-10", "shield-maiden-1", "skald-1" })
+  local strongSouth = plan({ "axe-10", "sword-10", "spear-10", "shield-maiden-1", "jarl-1" })
   local weakNorth = plan({ "axe-1", "sword-1", "spear-1", "axe-2", "sword-2" })
   local southMetrics = evaluateFormationPlan("south", strongSouth, { weakNorth }, CARD_DATA, CONFIG)
   assertEqual(southMetrics.expectedScore, 1, "evaluator must score a south-side AI from its own perspective")
@@ -292,27 +329,27 @@ function tests.hero_momentum_abilities()
   local expectedSongs = { win = 3, tie = 2, loss = 1 }
   local opponents = { win = "axe-1", tie = "shield-maiden-1", loss = "ravenfeeder-1" }
   for outcome, opponent in pairs(opponents) do
-    local song = resolveClashState(state({ "skald-1" }, { opponent }), CARD_DATA, CONFIG, true)
-    assertEqual(song.nextSongBonuses.north, expectedSongs[outcome], "Skald should queue the " .. outcome .. " song")
-    assertTrue(string.find(table.concat(song.logs, " "), "Responsive Song queues +" .. expectedSongs[outcome], 1, true) ~= nil, "Skald queue should be named in the combat log")
+    local song = resolveClashState(state({ "jarl-1" }, { opponent }), CARD_DATA, CONFIG, true)
+    assertEqual(song.nextSongBonuses.north, expectedSongs[outcome], "Jarl should queue the " .. outcome .. " bonus")
+    assertTrue(string.find(table.concat(song.logs, " "), "Jarl Lead by Example queues +" .. expectedSongs[outcome], 1, true) ~= nil, "Jarl queue should be named in the combat log")
   end
 
-  local penalizedSkald = state({ "skald-1" }, { "axe-1" })
-  penalizedSkald.penalties.north = true
-  local suppressedSong = resolveClashState(penalizedSkald, CARD_DATA, CONFIG, true)
-  assertEqual(suppressedSong.winner, "south", "Berserker penalty should lose Skald's Clash")
-  assertEqual(suppressedSong.nextSongBonuses.north, 0, "Berserker penalty should suppress Skald's outgoing song")
+  local penalizedJarl = state({ "jarl-1" }, { "axe-1" })
+  penalizedJarl.penalties.north = true
+  local suppressedSong = resolveClashState(penalizedJarl, CARD_DATA, CONFIG, true)
+  assertEqual(suppressedSong.winner, "south", "Berserker penalty should lose Jarl's Clash")
+  assertEqual(suppressedSong.nextSongBonuses.north, 0, "Berserker penalty should suppress Jarl's outgoing bonus")
   local permissiveRules = copyMap(CONFIG)
   permissiveRules.berserkerPenaltySuppressesAbilities = false
-  local allowedSong = resolveClashState(penalizedSkald, CARD_DATA, permissiveRules, true)
-  assertEqual(allowedSong.nextSongBonuses.north, 1, "disabled suppression should allow Skald's losing song")
+  local allowedSong = resolveClashState(penalizedJarl, CARD_DATA, permissiveRules, true)
+  assertEqual(allowedSong.nextSongBonuses.north, 1, "disabled suppression should allow Jarl's losing bonus")
 
-  local comboState = state({ "axe-5", "skald-1", "axe-4" }, { "sword-10", "sword-8" })
+  local comboState = state({ "axe-5", "jarl-1", "axe-4" }, { "sword-10", "sword-8" })
   comboState.oaths.north["axe-5"] = true
   local combo = resolveClashState(comboState, CARD_DATA, CONFIG, true)
-  assertTrue(combo.north.isSkald, "Skald should sing when consumed by Bloodsworn")
-  assertEqual(combo.winner, "north", "Bloodsworn and consumed Skald should win the setup Clash")
-  assertEqual(combo.nextSongBonuses.north, 3, "consumed Skald should queue the winning song")
+  assertTrue(combo.north.isJarl, "Jarl should activate when consumed by Bloodsworn")
+  assertEqual(combo.winner, "north", "Bloodsworn and consumed Jarl should win the setup Clash")
+  assertEqual(combo.nextSongBonuses.north, 3, "consumed Jarl should queue the winning bonus")
 
   comboState.cursor = combo.nextCursor
   comboState.chainBreaks = combo.nextBreaks
@@ -320,9 +357,10 @@ function tests.hero_momentum_abilities()
   comboState.previousDefeatMargins = combo.nextDefeatMargins
   comboState.songBonuses = combo.nextSongBonuses
   local inspired = resolveClashState(comboState, CARD_DATA, CONFIG, true)
-  assertEqual(inspired.north.breakdown[1].abilityBonus, 3, "winning song should apply to the next entry")
-  assertEqual(inspired.north.finalStrength, 7, "winning song should add three Strength")
-  assertTrue(string.find(table.concat(inspired.logs, " "), "Responsive Song adds +3", 1, true) ~= nil, "applied song should be named in the combat log")
+  assertEqual(inspired.north.breakdown[1].abilityBonus, 3, "winning bonus should apply to the next entry")
+  assertEqual(inspired.north.finalStrength, 7, "winning bonus should add three Strength")
+  assertEqual(inspired.nextSongBonuses.north, 0, "Jarl carryover should be usable only once")
+  assertTrue(string.find(table.concat(inspired.logs, " "), "Jarl Lead by Example adds +3", 1, true) ~= nil, "applied Jarl bonus should be named in the combat log")
 
   local stackedState = state({ "shield-maiden-1" }, { "spear-10" })
   stackedState.previousDefeatMargins.north = 6
