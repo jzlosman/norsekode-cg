@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, readFileSync, readdirSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { spawnSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
@@ -41,11 +41,34 @@ const escapeXml = (value) => String(value)
   .replaceAll("'", '&apos;')
 
 const pngData = (filePath) => `data:image/png;base64,${readFileSync(filePath).toString('base64')}`
+const removeFlatBackground = (fileName) => {
+  const input = join(artDir, fileName)
+  const output = join(tempDir, `transparent-${fileName}`)
+  const background = execFileSync('magick', [input, '-format', '%[pixel:p{0,0}]', 'info:'], { encoding: 'utf8' }).trim()
+  const result = spawnSync('magick', [
+    input,
+    '-alpha', 'on',
+    '-bordercolor', background,
+    '-border', '1',
+    '-fuzz', '8%',
+    '-fill', 'none',
+    '-draw', 'color 1,1 floodfill',
+    '-shave', '1x1',
+    output,
+  ], { encoding: 'utf8' })
+  if (result.status !== 0) throw new Error(`Could not remove the background from ${fileName}: ${result.stderr}`)
+  return output
+}
 const image = (href, x, y, w, h, extra = '') => `<image href="${href}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="xMidYMid meet" ${extra}/>`
 const line = (x1, y1, x2, y2, color, strokeWidth = 2, extra = '') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${strokeWidth}" ${extra}/>`
 
 const art = {
   night: pngData(join(artDir, 'night-field.png')),
+  axe: pngData(removeFlatBackground('axe-emblem.png')),
+  sword: pngData(removeFlatBackground('sword-emblem.png')),
+  spear: pngData(removeFlatBackground('spear-emblem.png')),
+  bloodsworn: pngData(removeFlatBackground('bloodsworn-emblem.png')),
+  shieldWall: pngData(removeFlatBackground('shield-wall-emblem.png')),
   ravenfeeder: pngData(join(artDir, 'ravenfeeder.png')),
   berserker: pngData(join(artDir, 'berserker.png')),
   shieldMaiden: pngData(join(artDir, 'shield-maiden.png')),
@@ -89,17 +112,6 @@ const glowDefs = (accent) => `
   </defs>
   <style>.accent{stroke:${accent};fill:none;stroke-linejoin:miter;stroke-linecap:square}</style>`
 
-const nkMark = (x, y, markHeight, color, opacity = 1) => {
-  const scale = markHeight / 1874
-  const markWidth = 1085 * scale
-  return `<g transform="translate(${x - markWidth / 2} ${y - markHeight / 2}) scale(${scale})" fill="${color}" stroke="${color}" stroke-width="38" stroke-linejoin="miter" opacity="${opacity}">
-    <polygon points="122.65,407.02 214.20,499.35 214.31,1106.37 122.68,1200.09"/>
-    <polygon points="122.65,407.02 971.70,1263.68 971.56,1397.50 122.65,540.84"/>
-    <polygon points="467.52,82.56 559.97,172.14 559.80,1738.70 467.31,1643.41"/>
-    <polygon points="559.97,782.77 941.44,407.67 941.55,541.48 559.97,916.58"/>
-  </g>`
-}
-
 const frameRails = (primary, accent) => `
   <rect x="23" y="23" width="704" height="3" fill="${primary}"/><rect x="23" y="1024" width="704" height="3" fill="${primary}"/>
   <rect x="23" y="23" width="3" height="1004" fill="${primary}"/><rect x="724" y="23" width="3" height="1004" fill="${primary}"/>
@@ -112,16 +124,13 @@ const angularCorners = (color) => `
   <rect x="55" y="992" width="88" height="3" fill="${color}"/><rect x="55" y="907" width="3" height="88" fill="${color}"/>
   <rect x="607" y="992" width="88" height="3" fill="${color}"/><rect x="692" y="907" width="3" height="88" fill="${color}"/>`
 
-const nightFrame = (accent, segmented = false) => `${glowDefs(accent)}
+const nightFrame = (accent) => `${glowDefs(accent)}
   <g clip-path="url(#cardClip)">
     <rect width="750" height="1050" fill="${COLORS.obsidian}"/>
     ${image(art.night, 0, 0, 750, 1050, 'opacity="0.72"')}
     <rect width="750" height="1050" fill="${COLORS.fjord}" opacity="0.14"/>
     ${frameRails(COLORS.bone, accent)}
-    ${segmented ? `<rect x="185" y="51" width="380" height="2" fill="${accent}"/><rect x="185" y="997" width="380" height="2" fill="${accent}"/><rect x="51" y="220" width="2" height="610" fill="${accent}"/><rect x="697" y="220" width="2" height="610" fill="${accent}"/>` : ''}
     ${angularCorners(accent)}
-    ${nkMark(375, 67, 34, COLORS.bone, 0.8)}
-    ${nkMark(375, 983, 34, COLORS.bone, 0.8)}
   </g>`
 
 const sagaFrame = () => `${glowDefs(COLORS.aurora)}
@@ -130,8 +139,6 @@ const sagaFrame = () => `${glowDefs(COLORS.aurora)}
     ${frameRails(COLORS.charcoal, COLORS.fjord)}
     <rect x="175" y="45" width="400" height="1" fill="${COLORS.aurora}"/><rect x="175" y="1004" width="400" height="1" fill="${COLORS.aurora}"/>
     ${angularCorners(COLORS.charcoal)}
-    ${nkMark(375, 67, 34, COLORS.aurora, 0.9)}
-    ${nkMark(375, 983, 34, COLORS.aurora, 0.9)}
   </g>`
 
 const rankAdjustments = {
@@ -146,22 +153,10 @@ const rankAdjustments = {
   J: { size: 92, dx: 0 },
 }
 
-const pipGlyph = (weapon, x, y, size, accent, opacity = 1) => {
-  const s = size / 100
-  const common = `stroke-linejoin="miter" stroke-linecap="square" opacity="${opacity}"`
-  const glow = `<circle cx="0" cy="0" r="37" fill="${accent}" opacity="0.08" filter="url(#accentGlow)"/>`
-  let shape
-  if (weapon === 'axe') {
-    shape = `<path d="M0 -43V44 M0 -30L-15 -40L-42 -31L-34 -7L-13 1L0 -6L13 1L34 -7L42 -31L15 -40Z" fill="none" stroke="${accent}" stroke-width="5" ${common}/><path d="M0 -31V43 M-13 1H13" fill="none" stroke="${COLORS.bone}" stroke-width="5" ${common}/>`
-  } else if (weapon === 'sword') {
-    shape = `<path d="M0 -47L12 -31L5 25H-5L-12 -31Z" fill="none" stroke="${accent}" stroke-width="5" ${common}/><path d="M-24 24H24 M-9 24L-7 42H7L9 24" fill="none" stroke="${COLORS.bone}" stroke-width="5" ${common}/><path d="M0 -38V21" stroke="${COLORS.bone}" stroke-width="3" ${common}/>`
-  } else {
-    shape = `<path d="M0 -49L15 -29L0 -11L-15 -29Z" fill="none" stroke="${accent}" stroke-width="5" ${common}/><path d="M0 -12V45 M-11 15L0 5L11 15" fill="none" stroke="${COLORS.bone}" stroke-width="5" ${common}/>`
-  }
-  return `<g transform="translate(${x} ${y}) scale(${s})">${glow}${shape}</g>`
-}
+const pipImage = (href, x, y, size) => image(href, x - size / 2, y - size / 2, size, size)
+const specialCornerBadge = (special, x = 92, y = 224) => special ? pipImage(art[special], x, y, 54) : ''
 
-const corner = ({ rank, weapon, accent, flipped = false, hero = false }) => {
+const corner = ({ rank, weapon, accent, special, flipped = false, hero = false }) => {
   const value = String(rank)
   const adjustment = rankAdjustments[value] || { size: 92, dx: 0 }
   const rankImage = textImage(value, 92 + adjustment.dx, 102, {
@@ -171,10 +166,8 @@ const corner = ({ rank, weapon, accent, flipped = false, hero = false }) => {
     color: hero ? COLORS.charcoal : accent,
     font: RANK_FONT,
   })
-  const mark = hero
-    ? nkMark(92, 170, 36, COLORS.fjord, 0.9)
-    : pipGlyph(weapon, 92, 170, 53, accent, 1)
-  const group = `<g>${rankImage}${mark}</g>`
+  const weaponMark = hero ? '' : pipImage(art[weapon], 92, 170, 58)
+  const group = `<g>${rankImage}${weaponMark}${specialCornerBadge(special)}</g>`
   return flipped ? rotated(group) : group
 }
 
@@ -204,23 +197,21 @@ const standardCardSvg = ({ weapon, rank, category }) => {
   const accent = COLORS[weapon]
   const isBloodsworn = category === 'bloodsworn'
   const isShieldWall = category === 'shield_wall'
-  const pips = pipPositions[rank].map(([x, y]) => pipGlyph(weapon, x, y, rank >= 8 ? 66 : 76, accent)).join('')
+  const pips = pipPositions[rank].map(([x, y]) => pipImage(art[weapon], x, y, 140)).join('')
   const suitLabel = textImage(weapon.toUpperCase(), 375, 955, { w: 220, h: 28, size: 12, color: COLORS.bone, kerning: 6 })
-  const special = isBloodsworn
-    ? `${specialRail('BLOODSWORN', 'JOIN WITH NEXT WARRIOR', accent)}
-       <g><polygon points="375,458 432,525 375,592 318,525" fill="${accent}"/><polygon points="375,468 423,525 375,582 327,525" fill="${COLORS.obsidian}"/><polygon points="375,485 409,525 375,565 341,525" fill="${COLORS.bone}"/><polygon points="375,494 401,525 375,556 349,525" fill="${COLORS.obsidian}"/><rect x="295" y="523" width="32" height="4" fill="${accent}"/><rect x="423" y="523" width="32" height="4" fill="${accent}"/></g>`
+  const specialKey = isBloodsworn ? 'bloodsworn' : isShieldWall ? 'shieldWall' : undefined
+  const faceLabel = isBloodsworn
+    ? specialRail('BLOODSWORN', 'JOIN WITH NEXT WARRIOR', accent)
     : isShieldWall
-      ? `${specialRail('SHIELD WALL', 'BREAK ANY CHAIN BONUSES', accent)}
-         <rect x="185" y="279" width="380" height="3" fill="${accent}"/><rect x="185" y="769" width="380" height="3" fill="${accent}"/><rect x="185" y="279" width="3" height="493" fill="${accent}"/><rect x="562" y="279" width="3" height="493" fill="${accent}"/>
-         <rect x="205" y="504" width="340" height="2" fill="${COLORS.bone}"/><rect x="205" y="544" width="340" height="2" fill="${COLORS.bone}"/>`
+      ? specialRail('SHIELD WALL', 'BREAK ANY CHAIN BONUSES', accent)
       : suitLabel
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-    ${nightFrame(accent, isShieldWall)}
+    ${nightFrame(accent)}
     <g clip-path="url(#cardClip)">
-      ${corner({ rank, weapon, accent })}
-      ${corner({ rank, weapon, accent, flipped: true })}
+      ${corner({ rank, weapon, accent, special: specialKey })}
+      ${corner({ rank, weapon, accent, special: specialKey, flipped: true })}
       ${pips}
-      ${special}
+      ${faceLabel}
     </g>
   </svg>`
 }

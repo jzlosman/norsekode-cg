@@ -60,6 +60,22 @@ describe('battle card assets', () => {
     }
   })
 
+  it('keeps fronts logo-free and preserves the established weapon and special emblems', () => {
+    const source = readFileSync(generatorSource, 'utf8')
+
+    expect(source).not.toContain('nkMark')
+    for (const asset of [
+      'axe-emblem.png',
+      'sword-emblem.png',
+      'spear-emblem.png',
+      'bloodsworn-emblem.png',
+      'shield-wall-emblem.png',
+    ]) {
+      expect(source).toContain(asset)
+    }
+    expect(source).toContain('specialCornerBadge')
+  })
+
   it('has a PNG asset for every battle card ID', () => {
     const missingAssetIds = BATTLE_CARDS
       .filter((card) => !existsSync(new URL(`${card.id}.png`, cardAssetsDirectory)))
