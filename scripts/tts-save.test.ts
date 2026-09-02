@@ -78,6 +78,37 @@ describe('TTS save generation', () => {
     expect(save.SkyURL).toBe(`${assetBaseUrl}norse-kode-fjord-sky.png`)
   })
 
+  it('adds a locked physical music console and embeds the ordered hosted playlist', () => {
+    const save = buildTtsSave({ assetBaseUrl, luaScript: '-- test lua', uiXml: '<!-- test ui -->' })
+    const musicConsole = save.ObjectStates.find((object: any) => object.Nickname === 'Voiceless Edda Music Console')
+
+    expect(musicConsole).toMatchObject({
+      Name: 'Custom_Tile',
+      GUID: 'm00001',
+      Locked: true,
+      Transform: { posX: 4.6, posY: 1.1, posZ: 16, rotY: 0, scaleX: 1.8, scaleZ: 0.9 },
+      CustomImage: { ImageURL: `${assetBaseUrl}norse-kode-music-console.png` },
+    })
+    expect(save.LuaScript).toContain('MUSIC_CONSOLE_GUID = "m00001"')
+    expect(save.LuaScript).toContain('MUSIC_PLAYLIST = {')
+    expect(save.LuaScript).toContain(`url = "${assetBaseUrl}music/01-ginnungagap-the-yawning-silence.mp3"`)
+    expect(save.LuaScript).toContain('title = "Ginnungagap — The Yawning Silence"')
+    expect(save.LuaScript).toContain(`url = "${assetBaseUrl}music/09-lif-and-lifthrasir-the-next-new-beginning.mp3"`)
+    expect(save.LuaScript.indexOf('01-ginnungagap')).toBeLessThan(save.LuaScript.indexOf('09-lif-and-lifthrasir'))
+
+    const overridden = buildTtsSave({
+      assetUrls: {
+        musicConsole: 'https://assets.example/console.png',
+        musicBase: 'https://audio.example/album',
+      },
+      luaScript: '-- test lua',
+      uiXml: '<!-- test ui -->',
+    })
+    const overriddenConsole = overridden.ObjectStates.find((object: any) => object.Nickname === 'Voiceless Edda Music Console')
+    expect(overriddenConsole.CustomImage.ImageURL).toBe('https://assets.example/console.png')
+    expect(overridden.LuaScript).toContain('url = "https://audio.example/album/01-ginnungagap-the-yawning-silence.mp3"')
+  })
+
   it('builds one 42-card custom deck from the existing card manifest', () => {
     const save = buildTtsSave({ assetBaseUrl, luaScript: '-- test lua', uiXml: '<!-- test ui -->' })
     const deck = save.ObjectStates.find((object: any) => object.Name === 'DeckCustom')
@@ -440,7 +471,8 @@ describe('TTS save generation', () => {
   it('embeds the Lua and UI sources and uses an explicit placeholder URL by default', () => {
     const save = buildTtsSave({ luaScript: 'function onLoad() end', uiXml: '<!-- ui -->' })
 
-    expect(save.LuaScript).toBe('function onLoad() end')
+    expect(save.LuaScript).toContain('MUSIC_PLAYLIST = {')
+    expect(save.LuaScript).toMatch(/function onLoad\(\) end$/)
     expect(save.XmlUI).toBe('<!-- ui -->')
     expect(save.ObjectStates.find((object: any) => object.Name === 'DeckCustom').CustomDeck['1'].FaceURL)
       .toMatch(/^https:\/\/YOUR-ASSET-HOST\/norse-kode\//)

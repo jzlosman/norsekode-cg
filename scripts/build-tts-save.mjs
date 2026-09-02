@@ -16,6 +16,8 @@ const envUrls = {
   back: process.env.NORSE_KODE_CARD_BACK_URL,
   manifest: process.env.NORSE_KODE_MANIFEST_URL,
   playerMat: process.env.NORSE_KODE_PLAYER_MAT_URL,
+  musicConsole: process.env.NORSE_KODE_MUSIC_CONSOLE_URL,
+  musicBase: process.env.NORSE_KODE_MUSIC_BASE_URL,
   clashToken: process.env.NORSE_KODE_CLASH_TOKEN_URL,
   skirmishToken: process.env.NORSE_KODE_SKIRMISH_TOKEN_URL,
   oathYes: process.env.NORSE_KODE_OATH_YES_URL,
@@ -26,6 +28,7 @@ const localGeneratedUrls = {
   tableSurface: join(root, 'tts/assets/norse-kode-battlefield-table.png'),
   sky: join(root, 'tts/assets/norse-kode-fjord-sky.png'),
   playerMat: join(root, 'tts/assets/norse-kode-player-mat.png'),
+  musicConsole: join(root, 'tts/assets/norse-kode-music-console.png'),
   clashToken: join(root, 'tts/assets/norse-clash-token.png'),
   skirmishToken: join(root, 'tts/assets/norse-skirmish-token.png'),
 }

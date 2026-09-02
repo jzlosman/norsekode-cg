@@ -6,6 +6,7 @@ import { imagePointToWorld, loadBoardLayout, renderBoardLayoutLua } from './tts-
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const cardManifest = JSON.parse(readFileSync(join(root, 'public/assets/cards/manifest.json'), 'utf8'))
+const musicManifest = JSON.parse(readFileSync(join(root, 'tts/music-playlist.json'), 'utf8'))
 const boardLayout = loadBoardLayout()
 const drawPosition = imagePointToWorld(boardLayout, boardLayout.draw)
 
@@ -22,11 +23,15 @@ const resolveAssetUrls = (assetBaseUrl, overrides = {}) => ({
   back: overrides.back ?? assetUrl(assetBaseUrl, 'card-back.png'),
   manifest: overrides.manifest ?? assetUrl(assetBaseUrl, 'asset-manifest.json'),
   playerMat: overrides.playerMat ?? assetUrl(assetBaseUrl, 'norse-kode-player-mat.png'),
+  musicConsole: overrides.musicConsole ?? assetUrl(assetBaseUrl, 'norse-kode-music-console.png'),
+  musicBase: normalizeBaseUrl(overrides.musicBase ?? assetUrl(assetBaseUrl, 'music/')),
   clashToken: overrides.clashToken ?? assetUrl(assetBaseUrl, 'norse-clash-token.png'),
   skirmishToken: overrides.skirmishToken ?? assetUrl(assetBaseUrl, 'norse-skirmish-token.png'),
   oathYes: overrides.oathYes ?? assetUrl(assetBaseUrl, 'oath-yes.png'),
   oathNo: overrides.oathNo ?? assetUrl(assetBaseUrl, 'oath-no.png'),
 })
+
+const renderMusicPlaylistLua = (musicBase) => `-- Generated from tts/music-playlist.json. Do not edit these tracks by hand.\nMUSIC_CONSOLE_GUID = "m00001"\nMUSIC_PLAYLIST = {\n${musicManifest.tracks.map((track) => `  { url = ${JSON.stringify(`${musicBase}${track.file}`)}, title = ${JSON.stringify(track.title)} },`).join('\n')}\n}\n`
 
 const transform = (x, y, z, scaleX = 1, scaleY = 1, scaleZ = 1, rotY = 180, rotZ = 0) => ({
   posX: x,
@@ -179,6 +184,30 @@ const playerMat = ({ guid, nickname, z, rotationY, description, imageUrl }) => (
   Locked: true,
 })
 
+const musicConsole = (imageUrl) => ({
+  Name: 'Custom_Tile',
+  Transform: transform(4.6, 1.1, 16, 1.8, 0.12, 0.9, 0, 0),
+  Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: true },
+  Nickname: 'Voiceless Edda Music Console',
+  Description: 'Music · Ready · Host controls',
+  GMNotes: 'norse-kode-music-console',
+  CustomImage: {
+    ImageURL: imageUrl,
+    ImageSecondaryURL: '',
+    ImageScalar: 1,
+    WidthScale: 0,
+    CustomToken: '',
+    CustomTile: {
+      Type: 0,
+      Thickness: 0.2,
+      Stackable: false,
+      Stretch: true,
+    },
+  },
+  GUID: 'm00001',
+  Locked: true,
+})
+
 const clashTokenBag = (imageUrl) => ({
   Name: 'Infinite_Bag',
   Transform: transform(9.25, 1.0, 0, 0.8, 0.8, 0.8, 0, 0),
@@ -251,7 +280,7 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
   SkyURL: urls.sky,
   Note: 'Norse Kode · Draft openly. Form in secret. Let the clash tell you who read the other line best.',
   Rules: `See tts/README.md in the source package for setup and playtest instructions. Card manifest: ${urls.manifest}`,
-  LuaScript: luaScript,
+  LuaScript: `${renderMusicPlaylistLua(urls.musicBase)}\n${luaScript}`,
   LuaScriptState: '',
   XmlUI: uiXml,
   ObjectStates: [
@@ -268,6 +297,7 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
     playerMat({ guid: 'b00002', nickname: 'North Player Mat', z: -11.2, rotationY: 180, imageUrl: urls.playerMat, description: 'North battle mat with five card-sized formation slots, two ordered Blood Oath slots, five Clash marker spaces, and a five-win Victory Track.' }),
     playerMat({ guid: 'b00003', nickname: 'South Player Mat', z: 11.2, rotationY: 0, imageUrl: urls.playerMat, description: 'South battle mat with five card-sized formation slots, two ordered Blood Oath slots, five Clash marker spaces, and a five-win Victory Track.' }),
     panel({ guid: 'b00004', nickname: 'Host Controls', x: 0, z: 16.0, scaleX: 4.8, scaleZ: 0.55, description: 'Host-only phase controls for setup, oath reveal, clash reveal, ending a Skirmish, and starting the next one.' }),
+    musicConsole(urls.musicConsole),
   ],
   }
 }
