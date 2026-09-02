@@ -53,6 +53,7 @@ MusicPlayer = {
   playlist = {},
   playlist_index = 1,
   setPlaylistCalls = 0,
+  setCurrentCalls = 0,
   playCalls = 0,
   pauseCalls = 0,
   previousCalls = 0,
@@ -63,9 +64,17 @@ MusicPlayer = {
 }
 function MusicPlayer.setPlaylist(playlist)
   MusicPlayer.playlist = playlist
-  MusicPlayer.playlist_index = 1
+  MusicPlayer.playlist_index = -1
   MusicPlayer.setPlaylistCalls = MusicPlayer.setPlaylistCalls + 1
   MusicPlayer.player_status = "Ready"
+end
+function MusicPlayer.getPlaylist() return MusicPlayer.playlist end
+function MusicPlayer.setCurrentAudioclip(clip)
+  MusicPlayer.setCurrentCalls = MusicPlayer.setCurrentCalls + 1
+  for index, candidate in ipairs(MusicPlayer.playlist) do
+    if candidate == clip then MusicPlayer.playlist_index = index; break end
+  end
+  MusicPlayer.player_status = "Loading"
 end
 function MusicPlayer.getCurrentAudioclip() return MusicPlayer.playlist[MusicPlayer.playlist_index] end
 function MusicPlayer.play()
@@ -227,6 +236,7 @@ function tests.music_console_controls()
   MusicPlayer.shuffle = false
   MusicPlayer.playlist = {}
   MusicPlayer.setPlaylistCalls = 0
+  MusicPlayer.setCurrentCalls = 0
   MusicPlayer.playCalls = 0
   MusicPlayer.pauseCalls = 0
   MusicPlayer.previousCalls = 0
@@ -246,6 +256,7 @@ function tests.music_console_controls()
 
   musicTogglePlay(nil, "White")
   assertEqual(MusicPlayer.setPlaylistCalls, 1, "first host action must initialize the playlist once")
+  assertEqual(MusicPlayer.setCurrentCalls, 1, "first host action must select the playlist's first track")
   assertEqual(MusicPlayer.playCalls, 1, "host play must start the selected track")
   assertTrue(string.find(musicConsoleStub.description, "First Track", 1, true) ~= nil, "console description must show the current track")
 

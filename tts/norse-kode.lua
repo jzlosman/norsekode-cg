@@ -163,6 +163,7 @@ MUSIC_STATE = {
   initialized = false,
   pendingPlay = false,
   playAttempts = 0,
+  currentClipSelected = false,
   shuffle = false,
   error = nil,
   consoleInstalled = false,
@@ -2343,6 +2344,7 @@ function ensureMusicPlaylist()
     return false
   end
   MUSIC_STATE.initialized = true
+  MUSIC_STATE.currentClipSelected = false
   MUSIC_STATE.error = nil
   MusicPlayer.shuffle = MUSIC_STATE.shuffle == true
   refreshMusicConsole()
@@ -2352,6 +2354,20 @@ end
 function attemptPendingMusicPlay()
   if not MUSIC_STATE.pendingPlay then return end
   MUSIC_STATE.playAttempts = (MUSIC_STATE.playAttempts or 0) + 1
+  if not MUSIC_STATE.currentClipSelected then
+    local playlistOk, playlist = pcall(function() return MusicPlayer.getPlaylist() end)
+    local firstTrack = playlistOk and playlist and playlist[1] or nil
+    if firstTrack then
+      local selectOk, selectError = pcall(function() MusicPlayer.setCurrentAudioclip(firstTrack) end)
+      if not selectOk then
+        MUSIC_STATE.pendingPlay = false
+        MUSIC_STATE.error = tostring(selectError)
+        refreshMusicConsole()
+        return
+      end
+      MUSIC_STATE.currentClipSelected = true
+    end
+  end
   local ok, playing = pcall(function() return MusicPlayer.play() end)
   if ok and playing then
     MUSIC_STATE.pendingPlay = false
@@ -2429,20 +2445,20 @@ function installMusicConsole()
   if not musicConsole then MUSIC_STATE.consoleInstalled = false; return false end
   musicConsole.clearButtons()
   local controls = {
-    { click = "musicPrevious", label = "|<", x = -1.45, tooltip = "Previous track." },
-    { click = "musicTogglePlay", label = "PLAY", x = -0.48, tooltip = "Play music." },
-    { click = "musicNext", label = ">|", x = 0.48, tooltip = "Next track." },
-    { click = "musicToggleShuffle", label = "SHUF OFF", x = 1.45, tooltip = "Toggle playlist shuffle." },
+    { click = "musicPrevious", label = "|<", x = -1.36, tooltip = "Previous track." },
+    { click = "musicTogglePlay", label = "PLAY", x = -0.45, tooltip = "Play music." },
+    { click = "musicNext", label = ">|", x = 0.45, tooltip = "Next track." },
+    { click = "musicToggleShuffle", label = "SHUF OFF", x = 1.36, tooltip = "Toggle playlist shuffle." },
   }
   for _, control in ipairs(controls) do
     musicConsole.createButton({
       click_function = control.click,
       function_owner = Global,
       label = control.label,
-      position = { x = control.x, y = 0.22, z = 0.30 },
+      position = { x = control.x, y = 0.22, z = 0.08 },
       rotation = { x = 0, y = 0, z = 0 },
       width = 620,
-      height = 410,
+      height = 1040,
       font_size = 150,
       color = { 0.10, 0.08, 0.06, 0.92 },
       hover_color = { 0.25, 0.18, 0.09, 0.96 },
