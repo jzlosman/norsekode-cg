@@ -1,8 +1,8 @@
 import { existsSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { BATTLE_CARDS } from './cards'
+import { BATTLE_CARDS } from '../src/game/cards'
 
-const cardAssetsDirectory = new URL('../../public/assets/cards/', import.meta.url)
+const cardAssetsDirectory = new URL('../public/assets/cards/', import.meta.url)
 
 describe('battle card assets', () => {
   it('has a PNG asset for every battle card ID', () => {
