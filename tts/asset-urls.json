@@ -1,5 +1,5 @@
 {
-  "table": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/633697257695b2a0b40c4e798d3f5fc4fe841592/tts/assets/norse-kode-table.png",
+  "table": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/0bfbfe24e9e32f7d789891888a1953908cc1bae2/tts/assets/norse-kode-table.png",
   "tableSurface": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/2fcf1b436292a1c38c6002fc6410b96875f6ade4/tts/assets/norse-kode-battlefield-table.png",
   "sky": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/2fcf1b436292a1c38c6002fc6410b96875f6ade4/tts/assets/norse-kode-fjord-sky.png",
   "playerMat": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/732c93ccc966b956578b82d7387a65e220f29aee/tts/assets/norse-kode-player-mat.png",
@@ -8,9 +8,11 @@
   "clashToken": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/c7224fd212af8532561fee9a6c0008f426607f6d/tts/assets/norse-clash-token.png",
   "skirmishToken": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/c7224fd212af8532561fee9a6c0008f426607f6d/tts/assets/norse-skirmish-token.png",
   "cards": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/norse-kode-deck.png",
-  "watchers": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/140c67336063a776cdf93a5c1e7ba1ef9c7355c4/tts/assets/norse-kode-watchers.png",
+  "watchers": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/0bfbfe24e9e32f7d789891888a1953908cc1bae2/tts/assets/norse-kode-watchers.png",
+  "fateNorth": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/0bfbfe24e9e32f7d789891888a1953908cc1bae2/tts/assets/fate-coin-north.png",
+  "fateSouth": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/0bfbfe24e9e32f7d789891888a1953908cc1bae2/tts/assets/fate-coin-south.png",
   "back": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/card-back.png",
-  "manifest": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/asset-manifest.json",
+  "manifest": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/0bfbfe24e9e32f7d789891888a1953908cc1bae2/tts/assets/asset-manifest.json",
   "oathNo": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/c7224fd212af8532561fee9a6c0008f426607f6d/tts/assets/oath-no.png",
   "oathYes": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/c7224fd212af8532561fee9a6c0008f426607f6d/tts/assets/oath-yes.png"
 }
