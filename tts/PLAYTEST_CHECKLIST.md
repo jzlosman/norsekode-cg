@@ -38,7 +38,7 @@
 
 ### Watchers
 
-- [ ] One Watcher is revealed before each enabled Skirmish draft and stays face-up for reference.
+- [ ] The Watcher schedule is automatic: none in Skirmishes 1–2, one in 3–6, and two in 7–8; revealed cards stay face-up for reference.
 - [ ] Thor, Týr, and Odin add +1 only to their matching weapon warriors.
 - [ ] Heimdall keeps position 3 face-up while both formations are arranged.
 - [ ] Loki presents private enemy-slot choices, swaps the selected warriors, and recalculates chains.

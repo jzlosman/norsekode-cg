@@ -1434,7 +1434,7 @@
         "Frozen": false
       },
       "Nickname": "Norse Kode Watcher Deck",
-      "Description": "10-card Watcher deck. One Watcher governs each Skirmish when CONFIG.godCardsEnabled is true.",
+      "Description": "10-card Watcher deck. Skirmishes 3–6 reveal one; Skirmishes 7–8 reveal two when CONFIG.godCardsEnabled is true.",
       "GMNotes": "norse-kode-watcher-deck",
       "DeckIDs": [
         200,

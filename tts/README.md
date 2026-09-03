@@ -95,7 +95,7 @@ Typical save locations:
 
 ### Watchers
 
-When enabled, the separate Watcher deck and its active-card altar sit in the board's upper utility area. The active card remains face-up beside the deck for inspection and returns to its deck between Skirmishes. The board also has a dedicated Gods Decide coin altar; the coin appears there only when an exact tie reaches the final Fate decision. BEFORE · DRAFT effects modify the draft's later calculations; BEFORE · CLASH 1 effects are consumed by the first Clash.
+When enabled, the separate Watcher deck and its active-card altar sit in the board's upper utility area. No Watchers appear in Skirmishes 1–2; one card is automatically revealed in Skirmishes 3–6; two cards are automatically revealed in Skirmishes 7–8. All revealed cards remain face-up beside the deck for inspection and return to it between Skirmishes. The board also has a dedicated Gods Decide coin altar; the coin appears there only when an exact tie reaches the final Fate decision. BEFORE · DRAFT effects modify the draft's later calculations; BEFORE · CLASH 1 effects are consumed by the first Clash.
 
 Thor, Týr, and Odin add +1 Strength to the matching weapon. Njörðr reverses the weapon tie-break triangle. Fimbulwinter removes all weapon-chain bonuses for the Skirmish. The Norns prevent the Berserker penalty caused by the next Berserker trigger. Heimdall keeps formation position 3 face-up. If final Strength ties, the higher natural primary number wins; if the natural entry values also tie, the Gods Decide coin awards North or South so a final Clash cannot remain unresolved.
 

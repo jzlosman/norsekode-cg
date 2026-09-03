@@ -176,7 +176,7 @@ const watcherDeck = (cardsUrl, backUrl) => {
     Transform: transform(watcherDeckPosition.x, 1.25, watcherDeckPosition.z, 1, 1, 1, 180, 180),
     Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: false },
     Nickname: 'Norse Kode Watcher Deck',
-    Description: '10-card Watcher deck. One Watcher governs each Skirmish when CONFIG.godCardsEnabled is true.',
+    Description: '10-card Watcher deck. Skirmishes 3–6 reveal one; Skirmishes 7–8 reveal two when CONFIG.godCardsEnabled is true.',
     GMNotes: 'norse-kode-watcher-deck',
     DeckIDs: cards.map((card) => card.CardID),
     CustomDeck: {
