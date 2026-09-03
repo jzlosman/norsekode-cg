@@ -605,6 +605,15 @@ function tests.state_migration()
   assertTrue(STATE.watcherNornsPending, "migration should initialize Watcher timing state")
 end
 
+function tests.watcher_schedule()
+  assertEqual(watcherDrawCountForSkirmish(1), 0, "Watcher deck should stay closed for Skirmish 1")
+  assertEqual(watcherDrawCountForSkirmish(2), 0, "Watcher deck should stay closed for Skirmish 2")
+  for skirmish = 3, 6 do assertEqual(watcherDrawCountForSkirmish(skirmish), 1, "Watcher schedule should reveal one card in Skirmish " .. skirmish) end
+  assertEqual(watcherDrawCountForSkirmish(7), 2, "Watcher schedule should reveal two cards in Skirmish 7")
+  assertEqual(watcherDrawCountForSkirmish(8), 2, "Watcher schedule should reveal two cards in Skirmish 8")
+  assertEqual(watcherDrawCountForSkirmish(9), 0, "Watcher deck should be exhausted after the scheduled rounds")
+end
+
 function tests.watcher_metadata_and_modifiers()
   assertTrue(type(WATCHER_DATA) == "table", "Watcher metadata must be embedded in Lua")
   assertEqual(#WATCHER_ORDER, 10, "all ten Watchers must be available")
@@ -626,6 +635,32 @@ function tests.watcher_metadata_and_modifiers()
   assertTrue(fimbulwinter.suppressChains, "Fimbulwinter must suppress chain bonuses")
   local norns = watcherModifiersForState({ currentWatcherId = "watcher-the-norns" })
   assertTrue(norns.skipBerserkerPenalty, "The Norns must suppress the following Berserker penalty")
+end
+
+function tests.tie_breakers()
+  local function state(north, south)
+    return {
+      formation = { north = north, south = south },
+      oaths = { north = {}, south = {} },
+      cursor = { north = 1, south = 1 },
+      chainBreaks = { north = {}, south = {} },
+      penalties = { north = false, south = false },
+      previousDefeatMargins = { north = 0, south = 0 },
+      songBonuses = { north = 0, south = 0 },
+    }
+  end
+  local boosted = copyMap(CONFIG)
+  boosted.watcherWeaponStrength = { axe = 1 }
+  local naturalNine = resolveClashState(state({ "axe-8" }, { "axe-9" }), CARD_DATA, boosted, true)
+  assertEqual(naturalNine.winner, "south", "a natural 9 must beat an 8 boosted to 9")
+
+  local exact = resolveClashState(state({ "axe-8" }, { "axe-8" }), CARD_DATA, CONFIG, true)
+  assertTrue(exact.fateRequired, "an exact same-type natural tie must require Gods Decide")
+  local fateRules = copyMap(CONFIG)
+  fateRules.fateWinner = "north"
+  local decided = resolveClashState(state({ "axe-8" }, { "axe-8" }), CARD_DATA, fateRules, true)
+  assertEqual(decided.winner, "north", "Gods Decide must award the supplied Fate result")
+  assertTrue(string.find(table.concat(decided.logs, " "), "Gods Decide", 1, true) ~= nil, "Fate resolution must be logged")
 end
 
 function tests.watcher_resolver_effects()
@@ -753,7 +788,7 @@ function tests.full_strategic_choice()
   assertEqual(choice.opponentPlanCount, 120, "solver must enumerate every opponent formation")
   assertTrue(choice.nearOptimalCount >= 1, "solver must report its randomized candidate pool")
   assertTrue(choice.metrics.total == choice.opponentPlanCount, "chosen metrics must cover every opponent plan")
-  assertEqual(choice.plan.key, "axe-5>sword-9>berserker-1>axe-8>axe-10|1", "seeded strategic decision should include the active Hero powers")
+  assertEqual(choice.plan.key, "sword-9>axe-5>axe-8>axe-10>berserker-1|2", "seeded strategic decision should use the natural-strength tie-break")
 end
 
 local requested = arg and arg[1] or "all"

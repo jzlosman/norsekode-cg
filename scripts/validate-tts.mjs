@@ -12,14 +12,15 @@ if (!existsSync(savePath)) throw new Error('Missing tts/build/Norse Kode.json; r
 const save = JSON.parse(readFileSync(savePath, 'utf8'))
 const deck = save.ObjectStates.find((object) => object.Nickname === 'Norse Kode Deck')
 const watcherDeck = save.ObjectStates.find((object) => object.Nickname === 'Norse Kode Watcher Deck')
+const fateCoin = save.ObjectStates.find((object) => object.Nickname === 'Gods Decide Fate Coin')
 const tokenBag = save.ObjectStates.find((object) => object.Nickname === 'Clash Token Bag')
 const skirmishBag = save.ObjectStates.find((object) => object.Nickname === 'Skirmish Token Bag')
 const musicConsole = save.ObjectStates.find((object) => object.Nickname === 'Voiceless Edda Music Console')
 const cards = deck?.ContainedObjects ?? []
 const objectsAndCards = save.ObjectStates.flatMap((object) => [object, ...(object.ContainedObjects ?? [])])
 const guids = objectsAndCards.map((object) => object.GUID)
-const assets = ['norse-kode-table.png', 'norse-kode-battlefield-table.png', 'norse-kode-fjord-sky.png', 'norse-kode-deck.png', 'norse-kode-watchers.png', 'card-back.png', 'norse-kode-player-mat.png', 'norse-kode-player-mat-base.png', 'norse-kode-music-console.png', 'norse-clash-token.png', 'norse-skirmish-token.png', 'oath-yes.png', 'oath-no.png']
-const isUsableImageReference = (imageUrl) => typeof imageUrl === 'string' && imageUrl.startsWith('https://')
+const assets = ['norse-kode-table.png', 'norse-kode-battlefield-table.png', 'norse-kode-fjord-sky.png', 'norse-kode-deck.png', 'norse-kode-watchers.png', 'fate-coin-north.png', 'fate-coin-south.png', 'card-back.png', 'norse-kode-player-mat.png', 'norse-kode-player-mat-base.png', 'norse-kode-music-console.png', 'norse-clash-token.png', 'norse-skirmish-token.png', 'oath-yes.png', 'oath-no.png']
+const isUsableImageReference = (imageUrl) => typeof imageUrl === 'string' && imageUrl.startsWith('https://') && !imageUrl.includes('YOUR-ASSET-HOST')
 const pngSize = (path) => {
   const data = readFileSync(path)
   if (data.toString('ascii', 1, 4) !== 'PNG') throw new Error(`Not a PNG: ${path}`)
@@ -29,7 +30,10 @@ const pngSize = (path) => {
 if (save.Table !== 'Table_Custom' || !isUsableImageReference(save.TableURL)) throw new Error('Save has no usable custom battlefield table.')
 if (save.Sky !== 'Sky_Museum' || !isUsableImageReference(save.SkyURL)) throw new Error('Save has no usable custom fjord background.')
 if (!deck || !watcherDeck) throw new Error('Save is missing the battle or Watcher deck.')
-if (save.ObjectStates.length !== 15) throw new Error(`Expected 15 top-level objects, got ${save.ObjectStates.length}.`)
+if (fateCoin?.Name !== 'Custom_Token' || fateCoin.GUID !== 'f00001' || !fateCoin.CustomImage?.ImageURL?.startsWith('https://') || !fateCoin.CustomImage?.ImageSecondaryURL?.startsWith('https://')) throw new Error('Save has no usable two-sided Gods Decide coin.')
+const board = save.ObjectStates.find((object) => object.Nickname === 'Norse Kode Board')
+if (board?.SnapPoints?.length !== 16) throw new Error(`Expected 16 board snap points, got ${board?.SnapPoints?.length ?? 0}.`)
+if (save.ObjectStates.length !== 16) throw new Error(`Expected 16 top-level objects, got ${save.ObjectStates.length}.`)
 if (musicConsole?.Name !== 'Custom_Tile' || musicConsole.GUID !== 'm00001' || !musicConsole.Locked || !isUsableImageReference(musicConsole.CustomImage?.ImageURL)) throw new Error('Save has no usable locked music console.')
 if (tokenBag?.Name !== 'Infinite_Bag' || tokenBag.ContainedObjects?.[0]?.Name !== 'Custom_Token') throw new Error('Save has no thematic Clash-token bag.')
 if (skirmishBag?.Name !== 'Infinite_Bag' || skirmishBag.ContainedObjects?.[0]?.Name !== 'Custom_Token') throw new Error('Save has no thematic Skirmish-token bag.')
@@ -86,6 +90,8 @@ const imageUrls = [
   deck.CustomDeck?.['1']?.BackURL,
   watcherDeck.CustomDeck?.['2']?.FaceURL,
   watcherDeck.CustomDeck?.['2']?.BackURL,
+  fateCoin.CustomImage?.ImageURL,
+  fateCoin.CustomImage?.ImageSecondaryURL,
   ...['North Player Mat', 'South Player Mat'].map((name) => save.ObjectStates.find((object) => object.Nickname === name)?.CustomImage?.ImageURL),
   musicConsole.CustomImage.ImageURL,
   ...['Clash Token Bag', 'Skirmish Token Bag', 'Oath YES Marker Bag', 'Oath NO Marker Bag'].map((name) => save.ObjectStates.find((object) => object.Nickname === name)?.ContainedObjects?.[0]?.CustomImage?.ImageURL),
@@ -100,7 +106,7 @@ for (const [index, track] of musicManifest.tracks.entries()) {
   if (!url.startsWith('https://') || !url.endsWith(`/music/${track.file}`)) throw new Error(`Unusable music URL for ${track.file}: ${url}`)
   if (title !== track.title) throw new Error(`Unexpected embedded music title at track ${index + 1}: ${title}`)
 }
-for (const functionName of ['onLoad', 'startWar', 'prepareWatcherReveal', 'resumeWatcherReveal', 'advanceWatcherReveal', 'advanceWatcherRevealUi', 'beginPostLockWatcherPhase', 'chooseWatcherSlot', 'revealOaths', 'resolveNextClash', 'endSkirmish', 'placeSkirmishToken', 'nextSkirmish', 'installMusicConsole', 'musicTogglePlay']) {
+for (const functionName of ['onLoad', 'startWar', 'prepareWatcherReveal', 'resumeWatcherReveal', 'advanceWatcherReveal', 'advanceWatcherRevealUi', 'beginPostLockWatcherPhase', 'showFateCoin', 'hideFateCoin', 'chooseWatcherSlot', 'revealOaths', 'resolveNextClash', 'endSkirmish', 'placeSkirmishToken', 'nextSkirmish', 'installMusicConsole', 'musicTogglePlay']) {
   if (!save.LuaScript.includes(`function ${functionName}`)) throw new Error(`Embedded Lua is missing ${functionName}.`)
 }
 if (!save.XmlUI.includes('north-oath-panel') || !save.XmlUI.includes('south-oath-panel')) throw new Error('Embedded UI is missing private oath panels.')

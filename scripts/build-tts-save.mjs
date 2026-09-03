@@ -14,6 +14,8 @@ const envUrls = {
   sky: process.env.NORSE_KODE_SKY_URL,
   cards: process.env.NORSE_KODE_CARDS_URL,
   watchers: process.env.NORSE_KODE_WATCHERS_URL,
+  fateNorth: process.env.NORSE_KODE_FATE_NORTH_URL,
+  fateSouth: process.env.NORSE_KODE_FATE_SOUTH_URL,
   back: process.env.NORSE_KODE_CARD_BACK_URL,
   manifest: process.env.NORSE_KODE_MANIFEST_URL,
   playerMat: process.env.NORSE_KODE_PLAYER_MAT_URL,

@@ -60,6 +60,10 @@ const assetManifest = {
     columns: watcherAtlasColumns,
     rows: watcherAtlasRows,
   },
+  fateCoin: {
+    north: 'fate-coin-north.png',
+    south: 'fate-coin-south.png',
+  },
   cardBack: 'card-back.png',
   cards: manifest.cards.map((card, index) => ({
     ...card,

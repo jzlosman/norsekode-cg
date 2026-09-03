@@ -13,6 +13,7 @@ This directory contains the multiplayer tabletop version of Norse Kode. TTS is t
 - `assets/norse-kode-fjord-sky.png` — 360° snowy-fjord custom background
 - `assets/norse-kode-deck.png` — 42-card, 7×6 battle deck atlas
 - `assets/norse-kode-watchers.png` — 10-card, 5×2 Watcher deck atlas
+- `assets/fate-coin-north.png` / `assets/fate-coin-south.png` — two-sided Gods Decide tie-break coin
 - `assets/card-back.png` — shared card back
 - `assets/norse-kode-player-mat-base.png` — generated base art for the player mat
 - `assets/norse-kode-player-mat.png` — natural wood-and-iron player mat with card guides, ordered Blood Oath spaces, Clash spaces, and five-win track
@@ -55,6 +56,8 @@ NORSE_KODE_TABLE_SURFACE_URL=https://... \\
 NORSE_KODE_SKY_URL=https://... \\
 NORSE_KODE_CARDS_URL=https://... \\
 NORSE_KODE_WATCHERS_URL=https://... \\
+NORSE_KODE_FATE_NORTH_URL=https://... \\
+NORSE_KODE_FATE_SOUTH_URL=https://... \\
 NORSE_KODE_CARD_BACK_URL=https://... \\
 NORSE_KODE_MANIFEST_URL=https://... \\
 NORSE_KODE_PLAYER_MAT_URL=https://... \\
@@ -67,7 +70,7 @@ NORSE_KODE_OATH_NO_URL=https://... \\
 npm run build:tts
 ```
 
-TTS uses the custom tabletop, custom background, board, battle and Watcher deck atlases, card-back, player mat, music, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
+TTS uses the custom tabletop, custom background, board, battle and Watcher deck atlases, Gods Decide coin, card-back, player mat, music, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
 
 ## Load in TTS
 
@@ -92,15 +95,15 @@ Typical save locations:
 
 ### Watchers
 
-When enabled, the separate Watcher deck reveals one card at the start of each Skirmish. The host advances the revealed card into the draft. BEFORE · DRAFT effects modify the draft's later calculations; BEFORE · CLASH 1 effects are consumed by the first Clash. The card remains face-up beside the draw area for inspection and returns to its deck between Skirmishes.
+When enabled, the separate Watcher deck and its active-card altar sit in the board's upper utility area. The active card remains face-up beside the deck for inspection and returns to its deck between Skirmishes. The board also has a dedicated Gods Decide coin altar; the coin appears there only when an exact tie reaches the final Fate decision. BEFORE · DRAFT effects modify the draft's later calculations; BEFORE · CLASH 1 effects are consumed by the first Clash.
 
-Thor, Týr, and Odin add +1 Strength to the matching weapon. Njörðr reverses the weapon tie-break triangle. Fimbulwinter removes all weapon-chain bonuses for the Skirmish. The Norns prevent the Berserker penalty caused by the next Berserker trigger. Heimdall keeps formation position 3 face-up.
+Thor, Týr, and Odin add +1 Strength to the matching weapon. Njörðr reverses the weapon tie-break triangle. Fimbulwinter removes all weapon-chain bonuses for the Skirmish. The Norns prevent the Berserker penalty caused by the next Berserker trigger. Heimdall keeps formation position 3 face-up. If final Strength ties, the higher natural primary number wins; if the natural entry values also tie, the Gods Decide coin awards North or South so a final Clash cannot remain unresolved.
 
 After both lines lock, Loki and Skaði require each player to choose an enemy slot privately and seal it. Loki swaps the two selected warriors into the selected enemy positions and recalculates chains. Skaði applies -2 Strength to each selected warrior for its Clash. Frigg optionally lets each player privately view one enemy card; the card is returned face-down with no changes allowed. These interactions are enforced in Lua and must finish before Blood Oaths.
 
 ### Draft
 
-The host starts the War from the screen-space control panel. The board groups ten face-up draft cards into two tight rows of five. A separate utility column holds the face-down draw pile above a face-up discard pile. The board artwork, dealt-card positions, and twelve snap points all come from `board-layout.json`. The script shuffles the 42-card deck, deals the draft, and assigns a random first drafter. The active player clicks **TAKE** on one card. The card goes to that player's private TTS hand and the turn alternates automatically. In solo mode, the AI automatically drafts the highest-strength legal card when its turn arrives and keeps its cards face-down.
+The host starts the War from the screen-space control panel. The board groups ten face-up draft cards into two tight rows of five. A separate utility column holds the face-down draw pile above a face-up discard pile. The board artwork, dealt-card positions, Watcher/Fate altars, and sixteen snap points all come from `board-layout.json`. The script shuffles the 42-card deck, deals the draft, and assigns a random first drafter. The active player clicks **TAKE** on one card. The card goes to that player's private TTS hand and the turn alternates automatically. In solo mode, the AI automatically drafts the highest-strength legal card when its turn arrives and keeps its cards face-down.
 
 ### Formation
 

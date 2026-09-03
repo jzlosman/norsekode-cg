@@ -27,6 +27,8 @@
 - [ ] The winning side receives a Clash win and the loser does not.
 - [ ] The final Clash remains visible in `SKIRMISH READY` until the host presses **END SKIRMISH**.
 - [ ] The face-down deck sits on DRAW, draft cards snap to all ten printed wells, and ended Skirmishes move all ten cards into one face-up stack on DISCARD; no winner card stack is created.
+- [ ] The Watcher deck and active-card altar are visibly labeled above the utility column, and both snap to their dedicated board anchors.
+- [ ] The Gods Decide coin sits on its circular altar and is not shown as an active result until an exact tie requires it.
 - [ ] The Skirmish marker lands on the next Victory Track space.
 - [ ] Five Skirmish wins win the War; a 3–2 split leaves populations at 2–3.
 - [ ] Next Skirmish reverses the draft lead.
@@ -51,6 +53,7 @@
 
 - [ ] A sworn Bloodsworn consumes the following card.
 - [ ] A final-slot Bloodsworn cannot consume a missing partner.
+- [ ] A same-type tie goes to the higher natural primary number; an exact natural tie flips Gods Decide and awards the shown coin face.
 - [ ] A Shield Wall cancels the opposing current chain bonus.
 - [ ] A Shield Wall breaks the opposing future chain.
 - [ ] Berserker wins its Clash automatically.

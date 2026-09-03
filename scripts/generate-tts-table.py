@@ -40,6 +40,23 @@ def label_svg(point, card_size, label, below=False):
     return f'''<text x="{point['x']}" y="{baseline}" text-anchor="middle" fill="{COLORS['bone']}" fill-opacity=".92" font-family="Inter NK" font-size="16" font-weight="600" letter-spacing="3">{label}</text>'''
 
 
+def altar_svg(point, card_size):
+    rect = rect_from_center(point, card_size)
+    x, y, width, height = rect["x"], rect["y"], rect["width"], rect["height"]
+    inset = 7
+    return f'''<rect x="{x - 8}" y="{y - 8}" width="{width + 16}" height="{height + 16}" rx="16" fill="{COLORS['charcoal']}" fill-opacity=".18" stroke="{COLORS['bone']}" stroke-opacity=".28" stroke-width="2" stroke-dasharray="8 9"/>
+<rect x="{x}" y="{y}" width="{width}" height="{height}" rx="10" fill="{COLORS['charcoal']}" fill-opacity=".22" stroke="{COLORS['aurora']}" stroke-opacity=".58" stroke-width="2.5"/>
+<path d="M{x+inset} {y+inset+24}V{y+inset}H{x+inset+24} M{x+width-inset-24} {y+height-inset}H{x+width-inset}V{y+height-inset-24}" fill="none" stroke="{COLORS['aurora']}" stroke-opacity=".84" stroke-width="3"/>'''
+
+
+def fate_altar_svg(point):
+    x, y = point["x"], point["y"]
+    return f'''<circle cx="{x}" cy="{y}" r="82" fill="{COLORS['charcoal']}" fill-opacity=".28" stroke="{COLORS['bone']}" stroke-opacity=".38" stroke-width="2" stroke-dasharray="7 8"/>
+<circle cx="{x}" cy="{y}" r="68" fill="none" stroke="{COLORS['aurora']}" stroke-opacity=".78" stroke-width="3"/>
+<path d="M{x-36} {y}H{x+36} M{x} {y-36}V{y+36}" stroke="{COLORS['bone']}" stroke-opacity=".32" stroke-width="2"/>
+<text x="{x}" y="{y+108}" text-anchor="middle" fill="{COLORS['bone']}" fill-opacity=".92" font-family="Inter NK" font-size="15" font-weight="600" letter-spacing="2">GODS DECIDE</text>'''
+
+
 def create_overlay(layout):
     width = layout["canvas"]["width"]
     height = layout["canvas"]["height"]
@@ -57,6 +74,14 @@ def create_overlay(layout):
     for label, point, below in (("DRAW", layout["draw"], False), ("DISCARD", layout["discard"], True)):
         parts.append(slot_svg(point, card_size))
         parts.append(label_svg(point, card_size, label, below))
+
+    parts.append(altar_svg(layout["watcherActive"], card_size))
+    parts.append(altar_svg(layout["watcherActive2"], card_size))
+    parts.append(altar_svg(layout["watcherDeck"], card_size))
+    parts.append(fate_altar_svg(layout["fateCoin"]))
+    altar_center_x = (layout["watcherActive"]["x"] + layout["watcherDeck"]["x"]) / 2
+    parts.append(f'''<text x="{altar_center_x}" y="{layout["watcherActive"]["y"] + 35}" text-anchor="middle" fill="{COLORS['bone']}" fill-opacity=".9" font-family="Inter NK" font-size="15" font-weight="600" letter-spacing="2">WATCHER ALTAR</text>
+<text x="{altar_center_x}" y="{layout["watcherActive"]["y"] + 60}" text-anchor="middle" fill="{COLORS['aurora']}" fill-opacity=".9" font-family="Inter NK" font-size="12" font-weight="600" letter-spacing="1.5">ACTIVE · DECK</text>''')
 
     parts.append("</svg>")
     OVERLAY.write_text("".join(parts))

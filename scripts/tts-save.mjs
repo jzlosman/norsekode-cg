@@ -10,6 +10,8 @@ const watcherManifest = JSON.parse(readFileSync(join(root, 'public/assets/watche
 const musicManifest = JSON.parse(readFileSync(join(root, 'tts/music-playlist.json'), 'utf8'))
 const boardLayout = loadBoardLayout()
 const drawPosition = imagePointToWorld(boardLayout, boardLayout.draw)
+const watcherDeckPosition = imagePointToWorld(boardLayout, boardLayout.watcherDeck)
+const fateCoinPosition = imagePointToWorld(boardLayout, boardLayout.fateCoin)
 
 export const DEFAULT_ASSET_BASE_URL = 'https://YOUR-ASSET-HOST/norse-kode/'
 
@@ -22,6 +24,8 @@ const resolveAssetUrls = (assetBaseUrl, overrides = {}) => ({
   sky: overrides.sky ?? assetUrl(assetBaseUrl, 'norse-kode-fjord-sky.png'),
   cards: overrides.cards ?? assetUrl(assetBaseUrl, 'norse-kode-deck.png'),
   watchers: overrides.watchers ?? assetUrl(assetBaseUrl, 'norse-kode-watchers.png'),
+  fateNorth: overrides.fateNorth ?? assetUrl(assetBaseUrl, 'fate-coin-north.png'),
+  fateSouth: overrides.fateSouth ?? assetUrl(assetBaseUrl, 'fate-coin-south.png'),
   back: overrides.back ?? assetUrl(assetBaseUrl, 'card-back.png'),
   manifest: overrides.manifest ?? assetUrl(assetBaseUrl, 'asset-manifest.json'),
   playerMat: overrides.playerMat ?? assetUrl(assetBaseUrl, 'norse-kode-player-mat.png'),
@@ -45,6 +49,22 @@ const transform = (x, y, z, scaleX = 1, scaleY = 1, scaleZ = 1, rotY = 180, rotZ
   scaleX,
   scaleY,
   scaleZ,
+})
+
+const boardSnapPoints = () => [
+  ...boardLayout.draft,
+  boardLayout.draw,
+  boardLayout.discard,
+  boardLayout.watcherActive,
+  boardLayout.watcherActive2,
+  boardLayout.watcherDeck,
+  boardLayout.fateCoin,
+].map((point) => {
+  const local = {
+    x: (-2 * (point.x - boardLayout.canvas.width / 2)) / boardLayout.canvas.height,
+    z: (2 * (point.y - boardLayout.canvas.height / 2)) / boardLayout.canvas.height,
+  }
+  return { position: { x: local.x, y: 0.28, z: local.z }, rotation: { x: 0, y: 180, z: 0 } }
 })
 
 const panel = ({ guid, nickname, x, z, scaleX = 1, scaleZ = 1, description }) => ({
@@ -81,6 +101,7 @@ const board = (tableUrl) => ({
   },
   GUID: 'b00001',
   Locked: true,
+  SnapPoints: boardSnapPoints(),
 })
 
 const bloodOathSlot = ({ guid, side, index, x, z }) => ({
@@ -152,7 +173,7 @@ const watcherDeck = (cardsUrl, backUrl) => {
 
   return {
     Name: 'DeckCustom',
-    Transform: transform(10.4, 1.25, -1.7, 1, 1, 1, 180, 180),
+    Transform: transform(watcherDeckPosition.x, 1.25, watcherDeckPosition.z, 1, 1, 1, 180, 180),
     Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: false },
     Nickname: 'Norse Kode Watcher Deck',
     Description: '10-card Watcher deck. One Watcher governs each Skirmish when CONFIG.godCardsEnabled is true.',
@@ -177,9 +198,9 @@ const watcherDeck = (cardsUrl, backUrl) => {
   }
 }
 
-const customToken = ({ guid, nickname, description, imageUrl }) => ({
+const customToken = ({ guid, nickname, description, imageUrl, imageSecondaryUrl = imageUrl, position = { x: 0, z: 0 }, height = 0, scale = 0.2 }) => ({
   Name: 'Custom_Token',
-  Transform: transform(0, 0, 0, 0.2, 1, 0.2, 180, 0),
+  Transform: transform(position.x, height, position.z, scale, 1, scale, 180, 0),
   Nickname: nickname,
   Description: description,
   GMNotes: 'norse-kode-token',
@@ -191,7 +212,7 @@ const customToken = ({ guid, nickname, description, imageUrl }) => ({
   Tooltip: true,
   CustomImage: {
     ImageURL: imageUrl,
-    ImageSecondaryURL: imageUrl,
+    ImageSecondaryURL: imageSecondaryUrl,
     ImageScalar: 1,
     WidthScale: 0,
     CustomToken: {
@@ -201,6 +222,17 @@ const customToken = ({ guid, nickname, description, imageUrl }) => ({
       Stackable: false,
     },
   },
+})
+
+const fateCoin = (northUrl, southUrl) => customToken({
+  guid: 'f00001',
+  nickname: 'Gods Decide Fate Coin',
+  description: 'Two-sided Fate coin. North face awards North; South face awards South when a Clash is exactly tied.',
+  imageUrl: northUrl,
+  imageSecondaryUrl: southUrl,
+  position: fateCoinPosition,
+  height: 1.35,
+  scale: 0.7,
 })
 
 const playerMat = ({ guid, nickname, z, rotationY, description, imageUrl }) => ({
@@ -334,6 +366,7 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
     bloodOathSlot({ guid: 'b00012', side: 'south', index: 2, x: 1.85, z: 13.8 }),
     deck(urls.cards, urls.back),
     watcherDeck(urls.watchers, urls.back),
+    fateCoin(urls.fateNorth, urls.fateSouth),
     clashTokenBag(urls.clashToken),
     oathMarkerBag({ guid: 'b00006', tokenGuid: 'o00001', nickname: 'Oath YES Marker Bag', description: 'Unlimited red YES markers for revealed Blood Oaths.', imageUrl: urls.oathYes }),
     oathMarkerBag({ guid: 'b00007', tokenGuid: 'o00002', nickname: 'Oath NO Marker Bag', description: 'Unlimited red NO markers for revealed Blood Oaths.', imageUrl: urls.oathNo }),

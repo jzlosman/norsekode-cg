@@ -17,5 +17,9 @@
     { "x": 950, "y": 680 }
   ],
   "draw": { "x": 1248, "y": 406 },
-  "discard": { "x": 1248, "y": 680 }
+  "discard": { "x": 1248, "y": 680 },
+  "watcherActive": { "x": 720, "y": 130 },
+  "watcherActive2": { "x": 960, "y": 130 },
+  "watcherDeck": { "x": 1250, "y": 130 },
+  "fateCoin": { "x": 260, "y": 130 }
 }

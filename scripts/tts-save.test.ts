@@ -14,6 +14,8 @@ const tokenAssetFiles = [
   'norse-skirmish-token.png',
   'oath-yes.png',
   'oath-no.png',
+  'fate-coin-north.png',
+  'fate-coin-south.png',
 ].map((name) => new URL(`../tts/assets/${name}`, import.meta.url))
 
 const allContainedCards = (save: any) => {
@@ -163,6 +165,25 @@ describe('TTS save generation', () => {
     expect(save.XmlUI).toContain('onClick="chooseWatcherSlot"')
     expect(save.XmlUI).toContain('onClick="finishWatcherChoice"')
     expect(save.LuaScript).toContain('card.setInvisibleTo({ opponentColor })')
+  })
+
+  it('adds a two-sided Gods Decide coin and dedicated board anchors', () => {
+    const save = buildTtsSave({ assetBaseUrl, ...loadSource() })
+    const coin = save.ObjectStates.find((object: any) => object.Nickname === 'Gods Decide Fate Coin')
+    const board = save.ObjectStates.find((object: any) => object.Nickname === 'Norse Kode Board')
+
+    expect(coin.CustomImage).toMatchObject({
+      ImageURL: `${assetBaseUrl}fate-coin-north.png`,
+      ImageSecondaryURL: `${assetBaseUrl}fate-coin-south.png`,
+    })
+    expect(board).toBeDefined()
+    expect(board.SnapPoints).toHaveLength(16)
+    expect(save.LuaScript).toContain('tieBreakMode = "natural-then-fate"')
+    expect(save.LuaScript).toContain('BOARD_LAYOUT.watcherActive')
+    expect(save.LuaScript).toContain('BOARD_LAYOUT.watcherDeck')
+    expect(save.LuaScript).toContain('BOARD_LAYOUT.watcherActive2')
+    expect(save.LuaScript).toContain('BOARD_LAYOUT.fateCoin')
+    expect(save.LuaScript).toContain('FATE_COIN_GUID = "f00001"')
   })
 
   it('places the board and control mats above the TTS tabletop surface', () => {
