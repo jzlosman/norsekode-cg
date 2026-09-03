@@ -6,6 +6,7 @@ import { imagePointToWorld, loadBoardLayout, renderBoardLayoutLua } from './tts-
 const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 const cardManifest = JSON.parse(readFileSync(join(root, 'public/assets/cards/manifest.json'), 'utf8'))
+const watcherManifest = JSON.parse(readFileSync(join(root, 'public/assets/watchers/manifest.json'), 'utf8'))
 const musicManifest = JSON.parse(readFileSync(join(root, 'tts/music-playlist.json'), 'utf8'))
 const boardLayout = loadBoardLayout()
 const drawPosition = imagePointToWorld(boardLayout, boardLayout.draw)
@@ -20,6 +21,7 @@ const resolveAssetUrls = (assetBaseUrl, overrides = {}) => ({
   tableSurface: overrides.tableSurface ?? assetUrl(assetBaseUrl, 'norse-kode-battlefield-table.png'),
   sky: overrides.sky ?? assetUrl(assetBaseUrl, 'norse-kode-fjord-sky.png'),
   cards: overrides.cards ?? assetUrl(assetBaseUrl, 'norse-kode-deck.png'),
+  watchers: overrides.watchers ?? assetUrl(assetBaseUrl, 'norse-kode-watchers.png'),
   back: overrides.back ?? assetUrl(assetBaseUrl, 'card-back.png'),
   manifest: overrides.manifest ?? assetUrl(assetBaseUrl, 'asset-manifest.json'),
   playerMat: overrides.playerMat ?? assetUrl(assetBaseUrl, 'norse-kode-player-mat.png'),
@@ -128,6 +130,47 @@ const deck = (cardsUrl, backUrl) => {
     },
     ContainedObjects: cards,
     GUID: 'd00001',
+    Grid: true,
+    Snap: true,
+    Tooltip: true,
+  }
+}
+
+const watcherDeck = (cardsUrl, backUrl) => {
+  const cards = watcherManifest.cards.map((card, index) => ({
+    Name: 'Card',
+    Transform: transform(0, 0, 0),
+    Nickname: `${card.name} · ${card.title}`,
+    Description: `${card.timing} · ${card.effect} · ${card.id}`,
+    GMNotes: card.id,
+    CardID: 200 + index,
+    GUID: `w${String(index + 1).padStart(5, '0')}`,
+    Grid: true,
+    Snap: true,
+    Tooltip: true,
+  }))
+
+  return {
+    Name: 'DeckCustom',
+    Transform: transform(10.4, 1.25, -1.7, 1, 1, 1, 180, 180),
+    Rigidbody: { Mass: 1, Drag: 0.1, AngularDrag: 0.1, AngularVelocity: { x: 0, y: 0, z: 0 }, UseGravity: true, Frozen: false },
+    Nickname: 'Norse Kode Watcher Deck',
+    Description: '10-card Watcher deck. One Watcher governs each Skirmish when CONFIG.godCardsEnabled is true.',
+    GMNotes: 'norse-kode-watcher-deck',
+    DeckIDs: cards.map((card) => card.CardID),
+    CustomDeck: {
+      '2': {
+        FaceURL: cardsUrl,
+        BackURL: backUrl,
+        NumWidth: 5,
+        NumHeight: 2,
+        BackIsHidden: true,
+        UniqueBack: false,
+        Type: 0,
+      },
+    },
+    ContainedObjects: cards,
+    GUID: 'd00002',
     Grid: true,
     Snap: true,
     Tooltip: true,
@@ -290,6 +333,7 @@ export const buildTtsSave = ({ assetBaseUrl = DEFAULT_ASSET_BASE_URL, assetUrls 
     bloodOathSlot({ guid: 'b00011', side: 'south', index: 1, x: -1.85, z: 13.8 }),
     bloodOathSlot({ guid: 'b00012', side: 'south', index: 2, x: 1.85, z: 13.8 }),
     deck(urls.cards, urls.back),
+    watcherDeck(urls.watchers, urls.back),
     clashTokenBag(urls.clashToken),
     oathMarkerBag({ guid: 'b00006', tokenGuid: 'o00001', nickname: 'Oath YES Marker Bag', description: 'Unlimited red YES markers for revealed Blood Oaths.', imageUrl: urls.oathYes }),
     oathMarkerBag({ guid: 'b00007', tokenGuid: 'o00002', nickname: 'Oath NO Marker Bag', description: 'Unlimited red NO markers for revealed Blood Oaths.', imageUrl: urls.oathNo }),

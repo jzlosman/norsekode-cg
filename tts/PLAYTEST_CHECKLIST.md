@@ -2,6 +2,8 @@
 
 ## Happy path
 
+- [ ] Set `CONFIG.godCardsEnabled = true` in Lua and reload the save to enable Watchers.
+- [ ] The separate Watcher deck contains ten face-up-art cards and remains separate from the battle deck.
 - [ ] The default red TTS table is replaced by the top-down frozen battlefield, and the surrounding room uses the snowy-fjord background.
 - [ ] The locked VOICELESS EDDA console appears beside Host Controls without overlapping it or the player mat.
 - [ ] Loading the save remains silent; a non-host cannot control music.
@@ -31,6 +33,21 @@
 - [ ] Starting a new War recycles the used cards.
 
 ## Rules edge cases
+
+### Watchers
+
+- [ ] One Watcher is revealed before each enabled Skirmish draft and stays face-up for reference.
+- [ ] Thor, Týr, and Odin add +1 only to their matching weapon warriors.
+- [ ] Heimdall keeps position 3 face-up while both formations are arranged.
+- [ ] Loki presents private enemy-slot choices, swaps the selected warriors, and recalculates chains.
+- [ ] Frigg lets each player view one enemy card privately, then returns it face-down with no changes.
+- [ ] Skaði presents private enemy-slot choices and applies -2 Strength to each selected warrior's Clash.
+- [ ] Njörðr reverses the weapon tie-break triangle.
+- [ ] Fimbulwinter suppresses every weapon-chain bonus for the Skirmish.
+- [ ] The Norns prevent the Berserker penalty following the next Berserker trigger.
+- [ ] Watcher choices finish before Blood Oath controls become available.
+
+### Existing rules
 
 - [ ] A sworn Bloodsworn consumes the following card.
 - [ ] A final-slot Bloodsworn cannot consume a missing partner.

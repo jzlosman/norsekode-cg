@@ -1,11 +1,19 @@
 {
   "source": "public/assets/cards/manifest.json",
+  "watcherSource": "public/assets/watchers/manifest.json",
   "atlas": {
     "file": "norse-kode-deck.png",
     "width": 5250,
     "height": 6300,
     "columns": 7,
     "rows": 6
+  },
+  "watcherAtlas": {
+    "file": "norse-kode-watchers.png",
+    "width": 3750,
+    "height": 2100,
+    "columns": 5,
+    "rows": 2
   },
   "cardBack": "card-back.png",
   "cards": [
@@ -386,6 +394,138 @@
       "file": "jarl-3.png",
       "atlasIndex": 41,
       "ttsCardId": 141
+    }
+  ],
+  "watchers": [
+    {
+      "id": "watcher-thor",
+      "name": "Thor",
+      "title": "Favor of the Axe",
+      "timing": "BEFORE · DRAFT",
+      "rules": "Axe warriors +1 Strength.",
+      "effect": "Axe warriors gain +1 Strength.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-thor.png",
+      "atlasIndex": 0,
+      "ttsCardId": 200
+    },
+    {
+      "id": "watcher-tyr",
+      "name": "Týr",
+      "title": "Favor of the Sword",
+      "timing": "BEFORE · DRAFT",
+      "rules": "Sword warriors +1 Strength.",
+      "effect": "Sword warriors gain +1 Strength.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-tyr.png",
+      "atlasIndex": 1,
+      "ttsCardId": 201
+    },
+    {
+      "id": "watcher-odin",
+      "name": "Odin",
+      "title": "Favor of the Spear",
+      "timing": "BEFORE · DRAFT",
+      "rules": "Spear warriors +1 Strength.",
+      "effect": "Spear warriors gain +1 Strength.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-odin.png",
+      "atlasIndex": 2,
+      "ttsCardId": 202
+    },
+    {
+      "id": "watcher-loki",
+      "name": "Loki",
+      "title": "A Better Offer",
+      "timing": "AFTER · FORM LOCK",
+      "rules": "Each player secretly picks 1 enemy slot. Swap those warriors; keep positions. Recalculate chains.",
+      "effect": "After formations lock, each player secretly chooses one position in the enemy line. The two selected warriors swap armies and occupy those exact positions. Recalculate chains.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-loki.png",
+      "atlasIndex": 3,
+      "ttsCardId": 203
+    },
+    {
+      "id": "watcher-heimdall",
+      "name": "Heimdall",
+      "title": "All-Seeing",
+      "timing": "DURING · FORMATION",
+      "rules": "Position 3 face-up in both lines.",
+      "effect": "Position 3 is played face-up in both formations.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-heimdall.png",
+      "atlasIndex": 4,
+      "ttsCardId": 204
+    },
+    {
+      "id": "watcher-frigg",
+      "name": "Frigg",
+      "title": "Foreknowledge",
+      "timing": "AFTER · FORM LOCK",
+      "rules": "Each player secretly views 1 enemy card. No changes.",
+      "effect": "After formations lock, each player may secretly look at one enemy card. No changes afterward.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-frigg.png",
+      "atlasIndex": 5,
+      "ttsCardId": 205
+    },
+    {
+      "id": "watcher-skadi",
+      "name": "Skaði",
+      "title": "The Hunt",
+      "timing": "AFTER · FORM LOCK",
+      "rules": "Each player chooses 1 enemy slot. That warrior −2 Strength this Clash.",
+      "effect": "After formations lock, each player chooses one enemy position. That warrior gets -2 Strength for its Clash.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-skadi.png",
+      "atlasIndex": 6,
+      "ttsCardId": 206
+    },
+    {
+      "id": "watcher-njordr",
+      "name": "Njörðr",
+      "title": "Turning Tide",
+      "timing": "BEFORE · DRAFT",
+      "rules": "Reverse the weapon triangle.",
+      "effect": "Reverse the normal weapon triangle.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-njordr.png",
+      "atlasIndex": 7,
+      "ttsCardId": 207
+    },
+    {
+      "id": "watcher-the-norns",
+      "name": "The Norns",
+      "title": "Fate Favors the Frenzied",
+      "timing": "BEFORE · CLASH 1",
+      "rules": "Berserkers do not auto-lose the following Clash.",
+      "effect": "Berserkers do not cause the following Clash to be automatically lost.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-the-norns.png",
+      "atlasIndex": 8,
+      "ttsCardId": 208
+    },
+    {
+      "id": "watcher-fimbulwinter",
+      "name": "Fimbulwinter",
+      "title": "Frozen Ranks",
+      "timing": "BEFORE · DRAFT",
+      "rules": "No weapon-chain bonuses this Skirmish.",
+      "effect": "No weapon-chain bonuses this skirmish.",
+      "category": "god",
+      "printedStrength": 0,
+      "file": "watcher-fimbulwinter.png",
+      "atlasIndex": 9,
+      "ttsCardId": 209
     }
   ]
 }

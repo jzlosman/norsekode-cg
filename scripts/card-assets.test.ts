@@ -7,7 +7,10 @@ const cardAssetsDirectory = new URL('../public/assets/cards/', import.meta.url)
 const fontsDirectory = new URL('../public/assets/fonts/', import.meta.url)
 const brandDirectory = new URL('../public/assets/brand/', import.meta.url)
 const cardManifest = new URL('manifest.json', cardAssetsDirectory)
+const watcherAssetsDirectory = new URL('../public/assets/watchers/', import.meta.url)
+const watcherManifest = new URL('manifest.json', watcherAssetsDirectory)
 const generatorSource = new URL('./generate-card-assets.mjs', import.meta.url)
+const watcherGeneratorSource = new URL('./generate-watcher-card-assets.mjs', import.meta.url)
 
 const approvedBrandSourceHashes = new Map<URL, string>([
   [new URL('Bravyn Runeskald.ttf', fontsDirectory), 'fba2a50213023eafc014ed772a96f85a47ae4a0465371515b372f599ecc21864'],
@@ -47,6 +50,55 @@ describe('battle card assets', () => {
       'jarl-1', 'jarl-2', 'jarl-3',
     ])
     expect(ids.some((id: string) => id.startsWith('skald-'))).toBe(false)
+  })
+
+  it('keeps the ten Watcher fronts separate from the disabled 42-card battle deck', () => {
+    const manifest = JSON.parse(readFileSync(watcherManifest, 'utf8'))
+    const cards = manifest.cards as Array<{ id: string; name: string; title: string; timing: string; rules: string; effect: string; file: string }>
+
+    expect(manifest).toMatchObject({ width: 750, height: 1050, cardBack: '../cards/card-back.png' })
+    expect(cards.map((card) => card.id)).toEqual([
+      'watcher-thor', 'watcher-tyr', 'watcher-odin', 'watcher-loki', 'watcher-heimdall',
+      'watcher-frigg', 'watcher-skadi', 'watcher-njordr', 'watcher-the-norns', 'watcher-fimbulwinter',
+    ])
+    expect(cards.every((card) => existsSync(new URL(card.file, watcherAssetsDirectory)))).toBe(true)
+    expect(cards.map((card) => card.timing)).toEqual([
+      'BEFORE · DRAFT', 'BEFORE · DRAFT', 'BEFORE · DRAFT', 'AFTER · FORM LOCK', 'DURING · FORMATION',
+      'AFTER · FORM LOCK', 'AFTER · FORM LOCK', 'BEFORE · DRAFT', 'BEFORE · CLASH 1', 'BEFORE · DRAFT',
+    ])
+    expect(cards.map((card) => card.rules)).toEqual([
+      'Axe warriors +1 Strength.',
+      'Sword warriors +1 Strength.',
+      'Spear warriors +1 Strength.',
+      'Each player secretly picks 1 enemy slot. Swap those warriors; keep positions. Recalculate chains.',
+      'Position 3 face-up in both lines.',
+      'Each player secretly views 1 enemy card. No changes.',
+      'Each player chooses 1 enemy slot. That warrior −2 Strength this Clash.',
+      'Reverse the weapon triangle.',
+      'Berserkers do not auto-lose the following Clash.',
+      'No weapon-chain bonuses this Skirmish.',
+    ])
+    expect(cards.map((card) => card.effect)).toEqual([
+      'Axe warriors gain +1 Strength.',
+      'Sword warriors gain +1 Strength.',
+      'Spear warriors gain +1 Strength.',
+      'After formations lock, each player secretly chooses one position in the enemy line. The two selected warriors swap armies and occupy those exact positions. Recalculate chains.',
+      'Position 3 is played face-up in both formations.',
+      'After formations lock, each player may secretly look at one enemy card. No changes afterward.',
+      'After formations lock, each player chooses one enemy position. That warrior gets -2 Strength for its Clash.',
+      'Reverse the normal weapon triangle.',
+      'Berserkers do not cause the following Clash to be automatically lost.',
+      'No weapon-chain bonuses this skirmish.',
+    ])
+
+    const source = readFileSync(watcherGeneratorSource, 'utf8')
+    expect(source).toContain('Bravyn Runeskald.ttf')
+    expect(source).toContain('Inter-SemiBold.ttf')
+    expect(source).toContain('watcherCardSvg')
+    expect(source).toContain('WATCHER_CARDS')
+    expect(source).toContain('CopyOpacity')
+    expect(source).toContain("'-level', '10%,70%'")
+    expect(source).not.toContain("textImage('W'")
   })
 
   it('declares the approved Night and Saga generator language', () => {

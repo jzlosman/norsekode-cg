@@ -138,6 +138,33 @@ describe('TTS save generation', () => {
     expect(deck.Transform.rotZ).toBe(180)
   })
 
+  it('builds a separate ten-card Watcher deck with its own atlas', () => {
+    const save = buildTtsSave({ assetBaseUrl, ...loadSource() })
+    const watcherDeck = save.ObjectStates.find((object: any) => object.Nickname === 'Norse Kode Watcher Deck')
+    const cards = watcherDeck.ContainedObjects
+
+    expect(cards).toHaveLength(10)
+    expect(cards.map((card: any) => card.GMNotes)).toEqual([
+      'watcher-thor', 'watcher-tyr', 'watcher-odin', 'watcher-loki', 'watcher-heimdall',
+      'watcher-frigg', 'watcher-skadi', 'watcher-njordr', 'watcher-the-norns', 'watcher-fimbulwinter',
+    ])
+    expect(watcherDeck.DeckIDs).toEqual(Array.from({ length: 10 }, (_, index) => 200 + index))
+    expect(watcherDeck.CustomDeck['2']).toMatchObject({
+      FaceURL: `${assetBaseUrl}norse-kode-watchers.png`,
+      BackURL: `${assetBaseUrl}card-back.png`,
+      NumWidth: 5,
+      NumHeight: 2,
+    })
+    expect(save.LuaScript).toContain('WATCHER_DECK_GUID = "d00002"')
+    expect(save.LuaScript).toContain('godCardsEnabled = false')
+    expect(save.XmlUI).toContain('id="watcher-reveal-controls"')
+    expect(save.XmlUI).toContain('id="north-watcher-panel"')
+    expect(save.XmlUI).toContain('id="south-watcher-panel"')
+    expect(save.XmlUI).toContain('onClick="chooseWatcherSlot"')
+    expect(save.XmlUI).toContain('onClick="finishWatcherChoice"')
+    expect(save.LuaScript).toContain('card.setInvisibleTo({ opponentColor })')
+  })
+
   it('places the board and control mats above the TTS tabletop surface', () => {
     const save = buildTtsSave({ assetBaseUrl, luaScript: '-- test lua', uiXml: '<!-- test ui -->' })
     const objects = save.ObjectStates
@@ -422,7 +449,9 @@ describe('TTS save generation', () => {
     expect(save.LuaScript).toContain('if version < 4 then')
     expect(save.LuaScript).toContain('STATE.previousDefeatMargins = STATE.previousDefeatMargins or { north = 0, south = 0 }')
     expect(save.LuaScript).toContain('STATE.songBonuses = STATE.songBonuses or { north = 0, south = 0 }')
-    expect(save.LuaScript).toContain('STATE.stateVersion = 4')
+    expect(save.LuaScript).toContain('STATE.stateVersion = 5')
+    expect(save.LuaScript).toContain('if version < 5 then')
+    expect(save.LuaScript).toContain('STATE.currentWatcherId = STATE.currentWatcherId or nil')
     expect(save.LuaScript).toContain('if #STATE.skirmishCards == 0 then')
   })
 

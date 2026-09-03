@@ -9,6 +9,7 @@
     <Text id="status" text="Claim one side, then start the War." fontSize="18" />
     <Text id="score" text="North 0/5 · South 0/5 · Clash 0–0" fontSize="16" color="#e9b85a" />
     <Text id="phase-help" text="Choose North or South. In solo mode, the other side is controlled by the AI." fontSize="15" color="#d1c1a6" />
+    <Text id="watcher-status" text="No Watcher active" fontSize="14" color="#e9b85a" />
 
     <VerticalLayout id="setup-controls" spacing="6" active="false">
       <HorizontalLayout spacing="8" childForceExpandWidth="true">
@@ -16,6 +17,10 @@
         <Button id="south-claim" text="CLAIM SOUTH" onClick="claimSouthUi" tooltip="Claim the South side." />
       </HorizontalLayout>
       <Button id="start-war" text="START WAR" onClick="startWarUi" tooltip="Start or restart the War." />
+    </VerticalLayout>
+
+    <VerticalLayout id="watcher-reveal-controls" spacing="6" active="false">
+      <Button id="advance-watcher" text="ENTER THE DRAFT" onClick="advanceWatcherRevealUi" tooltip="Apply the revealed Watcher's rule and begin the draft." />
     </VerticalLayout>
 
     <HorizontalLayout id="formation-controls" spacing="8" childForceExpandWidth="true" active="false">
@@ -40,6 +45,42 @@
     </VerticalLayout>
 
     <Text id="log" text="" fontSize="14" color="#d1c1a6" resizeTextForBestFit="false" />
+  </VerticalLayout>
+</Panel>
+
+<Panel id="north-watcher-panel" width="560" height="190" position="615 -160" color="#241b17F2" padding="12 12 12 12" visibility="Invisible" active="false">
+  <VerticalLayout spacing="5">
+    <Text text="NORTH · WATCHER CHOICE" fontSize="20" color="#e9b85a" />
+    <Text id="north-watcher-status" text="Choose an enemy slot, then seal." fontSize="14" color="#d1c1a6" />
+    <HorizontalLayout spacing="5" childForceExpandWidth="true">
+      <Button id="north-watcher-slot-1" text="SLOT 1" onClick="chooseWatcherSlot" />
+      <Button id="north-watcher-slot-2" text="SLOT 2" onClick="chooseWatcherSlot" />
+      <Button id="north-watcher-slot-3" text="SLOT 3" onClick="chooseWatcherSlot" />
+      <Button id="north-watcher-slot-4" text="SLOT 4" onClick="chooseWatcherSlot" />
+      <Button id="north-watcher-slot-5" text="SLOT 5" onClick="chooseWatcherSlot" />
+    </HorizontalLayout>
+    <HorizontalLayout spacing="6" childForceExpandWidth="true">
+      <Button id="north-watcher-skip" text="SKIP LOOK" onClick="skipWatcherChoice" />
+      <Button id="north-watcher-done" text="SEAL CHOICE" onClick="finishWatcherChoice" />
+    </HorizontalLayout>
+  </VerticalLayout>
+</Panel>
+
+<Panel id="south-watcher-panel" width="560" height="190" position="615 -160" color="#241b17F2" padding="12 12 12 12" visibility="Invisible" active="false">
+  <VerticalLayout spacing="5">
+    <Text text="SOUTH · WATCHER CHOICE" fontSize="20" color="#e9b85a" />
+    <Text id="south-watcher-status" text="Choose an enemy slot, then seal." fontSize="14" color="#d1c1a6" />
+    <HorizontalLayout spacing="5" childForceExpandWidth="true">
+      <Button id="south-watcher-slot-1" text="SLOT 1" onClick="chooseWatcherSlot" />
+      <Button id="south-watcher-slot-2" text="SLOT 2" onClick="chooseWatcherSlot" />
+      <Button id="south-watcher-slot-3" text="SLOT 3" onClick="chooseWatcherSlot" />
+      <Button id="south-watcher-slot-4" text="SLOT 4" onClick="chooseWatcherSlot" />
+      <Button id="south-watcher-slot-5" text="SLOT 5" onClick="chooseWatcherSlot" />
+    </HorizontalLayout>
+    <HorizontalLayout spacing="6" childForceExpandWidth="true">
+      <Button id="south-watcher-skip" text="SKIP LOOK" onClick="skipWatcherChoice" />
+      <Button id="south-watcher-done" text="SEAL CHOICE" onClick="finishWatcherChoice" />
+    </HorizontalLayout>
   </VerticalLayout>
 </Panel>
 

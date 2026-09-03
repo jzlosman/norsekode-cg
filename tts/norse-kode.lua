@@ -30,10 +30,121 @@ CONFIG = {
   aiSearchMatchupsPerFrame = 120,
   berserkerPenaltySuppressesAbilities = true,
   tieBehavior = "no-winner",
+  -- Watchers are fully implemented but remain opt-in for existing saves.
+  godCardsEnabled = false,
 }
+
+WATCHER_ORDER = {
+  "watcher-thor", "watcher-tyr", "watcher-odin", "watcher-loki", "watcher-heimdall",
+  "watcher-frigg", "watcher-skadi", "watcher-njordr", "watcher-the-norns", "watcher-fimbulwinter",
+}
+
+-- This table mirrors scripts/generate-watcher-card-assets.mjs and is intentionally
+-- embedded so the TTS controller never needs network access to resolve rules.
+WATCHER_DATA = {
+  ["watcher-thor"] = {
+    id = "watcher-thor", name = "Thor", title = "Favor of the Axe", timing = "BEFORE · DRAFT",
+    rules = "Axe warriors +1 Strength.", effect = "Axe warriors gain +1 Strength.", kind = "weapon-strength", weapon = "axe",
+  },
+  ["watcher-tyr"] = {
+    id = "watcher-tyr", name = "Týr", title = "Favor of the Sword", timing = "BEFORE · DRAFT",
+    rules = "Sword warriors +1 Strength.", effect = "Sword warriors gain +1 Strength.", kind = "weapon-strength", weapon = "sword",
+  },
+  ["watcher-odin"] = {
+    id = "watcher-odin", name = "Odin", title = "Favor of the Spear", timing = "BEFORE · DRAFT",
+    rules = "Spear warriors +1 Strength.", effect = "Spear warriors gain +1 Strength.", kind = "weapon-strength", weapon = "spear",
+  },
+  ["watcher-loki"] = {
+    id = "watcher-loki", name = "Loki", title = "A Better Offer", timing = "AFTER · FORM LOCK",
+    rules = "Each player secretly picks 1 enemy slot. Swap those warriors; keep positions. Recalculate chains.",
+    effect = "After formations lock, each player secretly chooses one position in the enemy line. The two selected warriors swap armies and occupy those exact positions. Recalculate chains.", kind = "swap-slots",
+  },
+  ["watcher-heimdall"] = {
+    id = "watcher-heimdall", name = "Heimdall", title = "All-Seeing", timing = "DURING · FORMATION",
+    rules = "Position 3 face-up in both lines.", effect = "Position 3 is played face-up in both formations.", kind = "reveal-slot", slot = 3,
+  },
+  ["watcher-frigg"] = {
+    id = "watcher-frigg", name = "Frigg", title = "Foreknowledge", timing = "AFTER · FORM LOCK",
+    rules = "Each player secretly views 1 enemy card. No changes.", effect = "After formations lock, each player may secretly look at one enemy card. No changes afterward.", kind = "view-slot",
+  },
+  ["watcher-skadi"] = {
+    id = "watcher-skadi", name = "Skaði", title = "The Hunt", timing = "AFTER · FORM LOCK",
+    rules = "Each player chooses 1 enemy slot. That warrior −2 Strength this Clash.", effect = "After formations lock, each player chooses one enemy position. That warrior gets -2 Strength for its Clash.", kind = "strength-penalty", amount = -2,
+  },
+  ["watcher-njordr"] = {
+    id = "watcher-njordr", name = "Njörðr", title = "Turning Tide", timing = "BEFORE · DRAFT",
+    rules = "Reverse the weapon triangle.", effect = "Reverse the normal weapon triangle.", kind = "reverse-triangle",
+  },
+  ["watcher-the-norns"] = {
+    id = "watcher-the-norns", name = "The Norns", title = "Fate Favors the Frenzied", timing = "BEFORE · CLASH 1",
+    rules = "Berserkers do not auto-lose the following Clash.", effect = "Berserkers do not cause the following Clash to be automatically lost.", kind = "skip-berserker-penalty",
+  },
+  ["watcher-fimbulwinter"] = {
+    id = "watcher-fimbulwinter", name = "Fimbulwinter", title = "Frozen Ranks", timing = "BEFORE · DRAFT",
+    rules = "No weapon-chain bonuses this Skirmish.", effect = "No weapon-chain bonuses this skirmish.", kind = "suppress-chains",
+  },
+}
+
+function watcherForcesFaceUp(watcherId, index)
+  local watcher = WATCHER_DATA[watcherId]
+  return watcher ~= nil and watcher.kind == "reveal-slot" and index == watcher.slot
+end
+
+function watcherModifiersForState(state)
+  local watcher = WATCHER_DATA[state and state.currentWatcherId]
+  local modifiers = {
+    weaponStrength = {},
+    reverseWeaponTriangle = false,
+    suppressChains = false,
+    skipBerserkerPenalty = false,
+    strengthPenalties = { north = {}, south = {} },
+  }
+  if not watcher then return modifiers end
+  if watcher.kind == "weapon-strength" then modifiers.weaponStrength[watcher.weapon] = 1 end
+  if watcher.kind == "reverse-triangle" then modifiers.reverseWeaponTriangle = true end
+  if watcher.kind == "suppress-chains" then modifiers.suppressChains = true end
+  if watcher.kind == "skip-berserker-penalty" and state.watcherNornsPending ~= false then modifiers.skipBerserkerPenalty = true end
+  if state.watcherStrengthPenalties and (state.watcherPostLockApplied or watcher.kind ~= "strength-penalty") then
+    modifiers.strengthPenalties = state.watcherStrengthPenalties
+  elseif watcher.kind == "strength-penalty" then
+    local choices = state.watcherChoices or {}
+    if choices.north and choices.north.slot and state.formation and state.formation.south and state.formation.south[choices.north.slot] then
+      modifiers.strengthPenalties.south[choices.north.slot] = watcher.amount
+    end
+    if choices.south and choices.south.slot and state.formation and state.formation.north and state.formation.north[choices.south.slot] then
+      modifiers.strengthPenalties.north[choices.south.slot] = watcher.amount
+    end
+  end
+  return modifiers
+end
+
+function applyWatcherPostLockEffect(state)
+  local nextState = {}
+  for key, value in pairs(state or {}) do nextState[key] = value end
+  nextState.formation = {
+    north = copyArray(state.formation and state.formation.north),
+    south = copyArray(state.formation and state.formation.south),
+  }
+  local watcher = WATCHER_DATA[state and state.currentWatcherId]
+  local choices = state and state.watcherChoices or {}
+  if watcher and watcher.kind == "swap-slots" and choices.north and choices.south then
+    local northIndex = tonumber(choices.south.slot)
+    local southIndex = tonumber(choices.north.slot)
+    if northIndex and southIndex and nextState.formation.north[northIndex] and nextState.formation.south[southIndex] then
+      nextState.formation.north[northIndex], nextState.formation.south[southIndex] = nextState.formation.south[southIndex], nextState.formation.north[northIndex]
+    end
+  end
+  local modifiers = watcherModifiersForState(nextState)
+  nextState.watcherStrengthPenalties = modifiers.strengthPenalties
+  nextState.watcherPostLockApplied = true
+  return nextState
+end
+
 
 BOARD_GUID = "b00001"
 DECK_GUID = "d00001"
+WATCHER_DECK_GUID = "d00002"
+WATCHER_REVEAL_LOCAL = { x = 1248, y = 130 }
 NORTH_PANEL_GUID = "b00002"
 SOUTH_PANEL_GUID = "b00003"
 HOST_PANEL_GUID = "b00004"
@@ -124,12 +235,18 @@ end
 
 function newState()
   return {
-    stateVersion = 4,
+    stateVersion = 5,
     phase = "SETUP",
     skirmish = 1,
     leader = "north",
     draftTurn = "north",
     sideColors = { north = nil, south = nil },
+    currentWatcherId = nil,
+    currentWatcherGuid = nil,
+    watcherChoices = { north = nil, south = nil },
+    watcherStrengthPenalties = { north = {}, south = {} },
+    watcherPostLockApplied = false,
+    watcherNornsPending = true,
     pool = {},
     hands = { north = {}, south = {} },
     formation = { north = {}, south = {} },
@@ -241,7 +358,38 @@ function cardMeta(guid)
   local object = cardObject(guid)
   if not object then return nil end
   local id = object.getGMNotes()
-  return CARD_DATA[id]
+  return CARD_DATA[id] or WATCHER_DATA[id]
+end
+
+function watcherDefinition()
+  return WATCHER_DATA[STATE.currentWatcherId]
+end
+
+function watcherNeedsPostLockChoices()
+  local watcher = watcherDefinition()
+  return watcher and (watcher.kind == "swap-slots" or watcher.kind == "view-slot" or watcher.kind == "strength-penalty")
+end
+
+function watcherChoiceKind()
+  local watcher = watcherDefinition()
+  return watcher and watcher.kind or nil
+end
+
+function watcherChoiceComplete(side)
+  local choice = STATE.watcherChoices and STATE.watcherChoices[side]
+  return choice and choice.done == true
+end
+
+function watcherSlotValid(side, index)
+  local enemy = otherSide(side)
+  return index and index >= 1 and index <= CONFIG.cardsPerPlayer and STATE.formation[enemy] and STATE.formation[enemy][index] ~= nil
+end
+
+function watcherRevealLocalPosition()
+  if BOARD_LAYOUT and BOARD_LAYOUT.draft then
+    return boardWorldPosition(WATCHER_REVEAL_LOCAL, 1.3)
+  end
+  return { x = 0, y = 1.3, z = 0 }
 end
 
 function isHost(color)
@@ -297,6 +445,10 @@ end
 function computeChainBonusesFor(formation, chainBreaks, cards, config)
   local rules = config or CONFIG
   local bonuses = {}
+  if rules.watcherSuppressChains then
+    for index = 1, #(formation or {}) do bonuses[index] = 0 end
+    return bonuses
+  end
   local chainLength = 0
   local previousWeapon = "none"
   for index, guid in ipairs(formation or {}) do
@@ -316,8 +468,8 @@ function computeChainBonusesFor(formation, chainBreaks, cards, config)
 end
 
 function computeEntryChainTotal(formation, startIndex, endIndex, chainBreaks, cards, config, suppressAll)
-  if suppressAll then return 0 end
   local rules = config or CONFIG
+  if suppressAll or rules.watcherSuppressChains then return 0 end
   local chainLength = 0
   local previousWeapon = "none"
   local total = 0
@@ -352,10 +504,22 @@ function printedStrength(card, config)
   return card.strength
 end
 
+function watcherWeaponBonus(card, config)
+  local rules = config or CONFIG
+  return (rules.watcherWeaponStrength and rules.watcherWeaponStrength[card.weapon]) or 0
+end
+
+function watcherPenaltyFor(cardIndex, side, config)
+  local rules = config or CONFIG
+  local penalties = rules.watcherStrengthPenalties and rules.watcherStrengthPenalties[side]
+  return penalties and penalties[cardIndex] or 0
+end
+
 function aiCardScore(guid)
   local card = cardMeta(guid)
   if not card then return -1 end
-  return printedStrength(card)
+  local watcher = watcherModifiersForState(STATE)
+  return printedStrength(card) + (watcher.weaponStrength[card.weapon] or 0)
 end
 
 function setFaceDown(card)
@@ -441,7 +605,7 @@ function applyAiFormationChoice(side, choice)
     local card = cardObject(guid)
     if card then
       card.setLock(false)
-      ensureFaceDown(card)
+      if watcherForcesFaceUp(STATE.currentWatcherId, index) then ensureFaceUp(card) else ensureFaceDown(card) end
       card.setPosition(slotPosition(side, index))
       card.setLock(true)
     end
@@ -449,9 +613,7 @@ function applyAiFormationChoice(side, choice)
 
   addLog("AI evaluated every legal battle line and Blood Oath, then committed a hidden plan.")
   if STATE.committed.north and STATE.committed.south then
-    STATE.phase = "OATHS"
-    addLog("Both battle lines are committed. Players choose Blood Oaths privately.")
-    aiChooseOaths()
+    beginPostLockWatcherPhase()
   else
     STATE.phase = "FORMATION_LOCKED"
   end
@@ -492,7 +654,10 @@ function aiCommitFormation()
     end
   end
 
-  AI_FORMATION_SEARCH = createStrategicFormationSearch(side, STATE.hands[side], STATE.hands[otherSide(side)], cards, CONFIG)
+  AI_FORMATION_SEARCH = createStrategicFormationSearch(side, STATE.hands[side], STATE.hands[otherSide(side)], cards, CONFIG, {
+    currentWatcherId = STATE.currentWatcherId,
+    watcherNornsPending = STATE.watcherNornsPending,
+  })
   addLog("AI is simulating every legal hidden formation and Blood Oath plan.")
   continueAiFormationSearch(side, AI_FORMATION_SEARCH)
 end
@@ -513,13 +678,15 @@ function scheduleAiTurn(frames)
       aiDraftCard()
     elseif (STATE.phase == "FORMATION" or STATE.phase == "FORMATION_LOCKED") and not STATE.committed[side] then
       aiCommitFormation()
+    elseif STATE.phase == "WATCHER_CHOICES" then
+      aiChooseWatcher()
     elseif STATE.phase == "OATHS" then
       aiChooseOaths()
     end
   end, frames or 1)
 end
 
-function createCompactEntry(formation, oaths, cursor, chainBreaks, cards, config)
+function createCompactEntry(formation, oaths, cursor, chainBreaks, cards, config, side)
   local rules = config or CONFIG
   local primaryGuid = formation[cursor]
   if not primaryGuid then return nil end
@@ -532,6 +699,8 @@ function createCompactEntry(formation, oaths, cursor, chainBreaks, cards, config
   if canSwear and not partner then return nil end
   local endIndex = cursor + (canSwear and 1 or 0)
   local totalPrinted = printedStrength(primary, rules) + (partner and printedStrength(partner, rules) or 0)
+  local totalWatcherBonus = watcherWeaponBonus(primary, rules) + (partner and watcherWeaponBonus(partner, rules) or 0)
+  local totalWatcherPenalty = watcherPenaltyFor(cursor, side, rules) + (partner and watcherPenaltyFor(cursor + 1, side, rules) or 0)
   local totalChain = computeEntryChainTotal(
     formation,
     cursor,
@@ -548,11 +717,13 @@ function createCompactEntry(formation, oaths, cursor, chainBreaks, cards, config
     endIndex = endIndex,
     primaryCard = primary,
     printedStrength = totalPrinted,
+    watcherBonus = totalWatcherBonus,
+    watcherPenalty = totalWatcherPenalty,
     chainBonus = totalChain,
     abilityBonus = 0,
     vengeanceBonus = 0,
     songBonus = 0,
-    finalStrength = totalPrinted + totalChain,
+    finalStrength = totalPrinted + totalWatcherBonus + totalWatcherPenalty + totalChain,
     hasWeapon = primary.weapon ~= "none" or (partner ~= nil and partner.weapon ~= "none"),
     isBloodswornCombo = canSwear,
     isShieldWall = primary.category == "shield_wall",
@@ -624,23 +795,24 @@ function chainBreaksFromMask(mask, config)
   return chainBreaks
 end
 
-function compactEntryForPlanMask(plan, cursor, breakMask, cards, config)
+function compactEntryForPlanMask(plan, cursor, breakMask, cards, config, side)
   local rules = config or CONFIG
-  if plan.compactEntryCards ~= cards or plan.compactEntryRules ~= rules then
+  if plan.compactEntryCards ~= cards or plan.compactEntryRules ~= rules or plan.compactEntrySide ~= side then
     plan.compactEntryCache = {}
     plan.compactEntryCards = cards
     plan.compactEntryRules = rules
+    plan.compactEntrySide = side
   end
   local key = cursor * 64 + breakMask
   local cached = plan.compactEntryCache[key]
   if cached ~= nil then return cached ~= false and cached or nil end
-  local entry = createCompactEntry(plan.formation, plan.oaths or {}, cursor, chainBreaksFromMask(breakMask, rules), cards, rules)
+  local entry = createCompactEntry(plan.formation, plan.oaths or {}, cursor, chainBreaksFromMask(breakMask, rules), cards, rules, side)
   plan.compactEntryCache[key] = entry or false
   return entry
 end
 
-function compactEntryForPlan(plan, cursor, chainBreaks, cards, config)
-  return compactEntryForPlanMask(plan, cursor, chainBreakMask(chainBreaks), cards, config)
+function compactEntryForPlan(plan, cursor, chainBreaks, cards, config, side)
+  return compactEntryForPlanMask(plan, cursor, chainBreakMask(chainBreaks), cards, config, side)
 end
 
 function buildEntryFor(combatState, side, cards, config, includeDetails)
@@ -653,12 +825,12 @@ function buildEntryFor(combatState, side, cards, config, includeDetails)
   if includeDetails == false then
     local plan = combatState.plans and combatState.plans[side]
     local entry = plan
-      and compactEntryForPlan(plan, cursor, combatState.chainBreaks[side], cards, rules)
-      or createCompactEntry(formation, oaths, cursor, combatState.chainBreaks[side], cards, rules)
+      and compactEntryForPlan(plan, cursor, combatState.chainBreaks[side], cards, rules, side)
+      or createCompactEntry(formation, oaths, cursor, combatState.chainBreaks[side], cards, rules, side)
     return applyHeroBonuses(entry, previousDefeatMargin, songBonus, rules)
   end
 
-  local entry = createCompactEntry(formation, oaths, cursor, combatState.chainBreaks[side], cards, rules)
+  local entry = createCompactEntry(formation, oaths, cursor, combatState.chainBreaks[side], cards, rules, side)
   if not entry then return nil end
   entry.compact = nil
   local primaryGuid = formation[cursor]
@@ -679,14 +851,18 @@ function buildEntryFor(combatState, side, cards, config, includeDetails)
     local chain = bonuses[index] or 0
     if suppressed or (entry.isBloodswornCombo and not rules.bloodswornAddsChainBonuses) then chain = 0 end
     local printed = printedStrength(card, rules)
+    local watcherBonus = watcherWeaponBonus(card, rules)
+    local watcherPenalty = watcherPenaltyFor(index, side, rules)
     table.insert(entryCards, card)
     table.insert(breakdown, {
       cardId = guid,
       cardName = card.name,
       printedStrength = printed,
+      watcherBonus = watcherBonus,
+      watcherPenalty = watcherPenalty,
       chainBonus = chain,
       abilityBonus = 0,
-      effectiveStrength = printed + chain,
+      effectiveStrength = printed + watcherBonus + watcherPenalty + chain,
       chainSuppressed = suppressed,
     })
   end
@@ -694,6 +870,12 @@ function buildEntryFor(combatState, side, cards, config, includeDetails)
   entry.consumedGuids = consumed
   entry.cards = entryCards
   entry.breakdown = breakdown
+  entry.watcherBonus = 0
+  entry.watcherPenalty = 0
+  for _, item in ipairs(breakdown) do
+    entry.watcherBonus = entry.watcherBonus + item.watcherBonus
+    entry.watcherPenalty = entry.watcherPenalty + item.watcherPenalty
+  end
   return applyHeroBonuses(entry, previousDefeatMargin, songBonus, rules)
 end
 
@@ -723,25 +905,27 @@ function suppressEntryChain(entry)
     local suppressed = {}
     for key, value in pairs(entry) do suppressed[key] = value end
     suppressed.chainBonus = 0
-    suppressed.finalStrength = suppressed.printedStrength + (suppressed.abilityBonus or 0)
+    suppressed.finalStrength = suppressed.printedStrength + (suppressed.watcherBonus or 0) + (suppressed.watcherPenalty or 0) + (suppressed.abilityBonus or 0)
     return suppressed
   end
   for _, item in ipairs(entry.breakdown or {}) do
     item.chainSuppressed = true
     item.chainBonus = 0
-    item.effectiveStrength = item.printedStrength + (item.abilityBonus or 0)
+    item.effectiveStrength = item.printedStrength + (item.watcherBonus or 0) + (item.watcherPenalty or 0) + (item.abilityBonus or 0)
   end
   entry.chainBonus = 0
-  entry.finalStrength = entry.printedStrength + (entry.abilityBonus or 0)
+  entry.finalStrength = entry.printedStrength + (entry.watcherBonus or 0) + (entry.watcherPenalty or 0) + (entry.abilityBonus or 0)
   return entry
 end
 
 function entrySummary(entry, logs)
   for _, item in ipairs(entry.breakdown) do
+    local watcherBonusText = (item.watcherBonus or 0) > 0 and " + " .. item.watcherBonus .. " Watcher" or ""
+    local watcherPenaltyText = (item.watcherPenalty or 0) < 0 and " - " .. math.abs(item.watcherPenalty) .. " Watcher penalty" or ""
     local chainText = item.chainBonus > 0 and " + " .. item.chainBonus .. " chain" or ""
     local abilityText = (item.abilityBonus or 0) > 0 and " + " .. item.abilityBonus .. " ability" or ""
     local suppressedText = item.chainSuppressed and " (chain suppressed)" or ""
-    table.insert(logs, item.cardName .. ": " .. item.printedStrength .. chainText .. abilityText .. " = " .. item.effectiveStrength .. suppressedText)
+    table.insert(logs, item.cardName .. ": " .. item.printedStrength .. watcherBonusText .. watcherPenaltyText .. chainText .. abilityText .. " = " .. item.effectiveStrength .. suppressedText)
   end
   if (entry.vengeanceBonus or 0) > 0 then table.insert(logs, "Shield Maiden Vengeance adds +" .. entry.vengeanceBonus .. ".") end
   if (entry.songBonus or 0) > 0 then table.insert(logs, "Jarl Lead by Example adds +" .. entry.songBonus .. ".") end
@@ -754,6 +938,8 @@ function entryMath(entry)
   local parts = {}
   for _, item in ipairs(entry.breakdown or {}) do
     table.insert(parts, tostring(item.printedStrength))
+    if (item.watcherBonus or 0) > 0 then table.insert(parts, tostring(item.watcherBonus)) end
+    if (item.watcherPenalty or 0) < 0 then table.insert(parts, tostring(item.watcherPenalty)) end
     if item.chainBonus > 0 then table.insert(parts, tostring(item.chainBonus)) end
     if (item.abilityBonus or 0) > 0 then table.insert(parts, tostring(item.abilityBonus)) end
   end
@@ -821,11 +1007,14 @@ function compareEntryStrengths(north, south, northStrength, southStrength, logs,
   local northWeapon = northPrimary.weapon
   local southWeapon = southPrimary.weapon
   if rules.weaponAdvantageMode == "tie-break-only" and northWeapon ~= "none" and southWeapon ~= "none" then
-    if rules.weaponTriangle[northWeapon] == southWeapon then
+    local northBeatsSouth = rules.weaponTriangle[northWeapon] == southWeapon
+    local southBeatsNorth = rules.weaponTriangle[southWeapon] == northWeapon
+    if rules.watcherReverseWeaponTriangle then northBeatsSouth, southBeatsNorth = southBeatsNorth, northBeatsSouth end
+    if northBeatsSouth then
       addDetail(logs, northPrimary.name .. " wins the weapon tie-break.")
       return "north"
     end
-    if rules.weaponTriangle[southWeapon] == northWeapon then
+    if southBeatsNorth then
       addDetail(logs, southPrimary.name .. " wins the weapon tie-break.")
       return "south"
     end
@@ -880,7 +1069,13 @@ function addHeroCarryover(result, config, includeLogs, suppressedSongSides)
 end
 
 function resolveClashState(combatState, cards, config, includeDetails)
-  local rules = config or CONFIG
+  local baseRules = config or CONFIG
+  local watcher = watcherModifiersForState(combatState)
+  local rules = copyMap(baseRules)
+  rules.watcherWeaponStrength = watcher.weaponStrength
+  rules.watcherReverseWeaponTriangle = watcher.reverseWeaponTriangle
+  rules.watcherSuppressChains = watcher.suppressChains
+  rules.watcherStrengthPenalties = watcher.strengthPenalties
   local logs = {}
   local edgeCases = {}
   if includeDetails == false then
@@ -888,7 +1083,20 @@ function resolveClashState(combatState, cards, config, includeDetails)
     edgeCases = nil
   end
   local nextPenalties = { north = combatState.penalties.north, south = combatState.penalties.south }
+  local nornsActive = watcher.skipBerserkerPenalty
+  local nornsProtectsPenalty = nornsActive and (combatState.penalties.north or combatState.penalties.south)
+  if nornsProtectsPenalty then
+    nextPenalties.north = false
+    nextPenalties.south = false
+    addDetail(logs, "The Norns shield this Clash from the Berserker penalty.")
+  elseif nornsActive then
+    addDetail(logs, "The Norns protect the Clash following the next Berserker trigger.")
+  end
   local suppressedSongSides = { north = false, south = false }
+  local function finish(result)
+    result.nextNornsPenaltyProtection = false
+    return addHeroCarryover(result, rules, logs ~= nil, suppressedSongSides)
+  end
   local nextBreaks = { north = copyArray(combatState.chainBreaks.north), south = copyArray(combatState.chainBreaks.south) }
   local north = buildEntryFor(combatState, "north", cards, rules, includeDetails)
   local south = buildEntryFor(combatState, "south", cards, rules, includeDetails)
@@ -900,7 +1108,7 @@ function resolveClashState(combatState, cards, config, includeDetails)
   if not north and not south then
     addDetail(edgeCases, "Skirmish ending without three wins due to no warriors remaining")
     addDetail(logs, "Neither battle line has a warrior available. The Skirmish ends without three wins.")
-    return addHeroCarryover({ winner = "tie", north = nil, south = nil, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} }, rules, logs ~= nil)
+    return finish({ winner = "tie", north = nil, south = nil, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} })
   end
   if not north or not south then
     local winner = north and "north" or "south"
@@ -908,7 +1116,7 @@ function resolveClashState(combatState, cards, config, includeDetails)
     if logs and north then entrySummary(north, logs) end
     if logs and south then entrySummary(south, logs) end
     addDetail(logs, sideName(winner) .. " has the only available warrior and wins this Clash automatically.")
-    return addHeroCarryover({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} }, rules, logs ~= nil)
+    return finish({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} })
   end
 
   local northSuppressed = north.isShieldWall and sumChain(south) or 0
@@ -935,8 +1143,8 @@ function resolveClashState(combatState, cards, config, includeDetails)
     entrySummary(south, logs)
   end
 
-  local northPenalty = combatState.penalties.north
-  local southPenalty = combatState.penalties.south
+  local northPenalty = combatState.penalties.north and not nornsProtectsPenalty
+  local southPenalty = combatState.penalties.south and not nornsProtectsPenalty
   local penaltiesActive = northPenalty or southPenalty
   local abilitiesAllowed = penaltiesActive and not rules.berserkerPenaltySuppressesAbilities and (north.isBerserker or south.isBerserker)
   if penaltiesActive and not abilitiesAllowed then
@@ -949,10 +1157,10 @@ function resolveClashState(combatState, cards, config, includeDetails)
     addDetail(edgeCases, "Berserker penalty when the Skirmish ends immediately")
     if northPenalty and southPenalty then
       addDetail(logs, "Both penalties apply; the Clash is tied.")
-      return addHeroCarryover({ winner = "tie", north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} }, rules, logs ~= nil, suppressedSongSides)
+      return finish({ winner = "tie", north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} })
     end
     local winner = northPenalty and "south" or "north"
-    return addHeroCarryover({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} }, rules, logs ~= nil, suppressedSongSides)
+    return finish({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = { north = false, south = false }, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} })
   end
   if abilitiesAllowed then
     addDetail(logs, "Berserker penalty is active, but this setting allows the Hero ability to trigger.")
@@ -964,14 +1172,22 @@ function resolveClashState(combatState, cards, config, includeDetails)
     addDetail(edgeCases, "Berserker interaction")
     if north.isBerserker and south.isBerserker then
       addDetail(logs, "Berserker vs. Berserker: both automatic wins cancel into a tied Clash.")
-      nextPenalties.north = true
-      nextPenalties.south = true
-      return addHeroCarryover({ winner = "tie", north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = nextPenalties, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} }, rules, logs ~= nil)
+      if not nornsActive then
+        nextPenalties.north = true
+        nextPenalties.south = true
+      else
+        addDetail(logs, "The Norns prevent the following Berserker penalties.")
+      end
+      return finish({ winner = "tie", north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = nextPenalties, nextPenalty = nil, logs = logs or {}, edgeCases = edgeCases or {} })
     end
     local winner = north.isBerserker and "north" or "south"
-    nextPenalties[winner] = true
+    if not nornsActive then
+      nextPenalties[winner] = true
+    else
+      addDetail(logs, "The Norns prevent the following Berserker penalty.")
+    end
     addDetail(logs, "Berserker wins automatically.")
-    return addHeroCarryover({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = nextPenalties, nextPenalty = winner, logs = logs or {}, edgeCases = edgeCases or {} }, rules, logs ~= nil)
+    return finish({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = nextPenalties, nextPenalty = winner, logs = logs or {}, edgeCases = edgeCases or {} })
   end
 
   local winner = compareEntries(north, south, logs, edgeCases, rules)
@@ -985,7 +1201,7 @@ function resolveClashState(combatState, cards, config, includeDetails)
     if math.max(north.finalStrength, south.finalStrength) >= rules.ravenfeederStrength then addDetail(edgeCases, "Ravenfeeder outcome") end
   end
 
-  return addHeroCarryover({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = nextPenalties, nextPenalty = nextPenaltyFrom(nextPenalties), logs = logs or {}, edgeCases = edgeCases or {} }, rules, logs ~= nil)
+  return finish({ winner = winner, north = north, south = south, nextCursor = nextCursor, nextBreaks = nextBreaks, nextPenalties = nextPenalties, nextPenalty = nextPenaltyFrom(nextPenalties), logs = logs or {}, edgeCases = edgeCases or {} })
 end
 
 function resolveClash()
@@ -1053,16 +1269,66 @@ function generateFormationPlans(hand, cards)
   return plans
 end
 
+function bestWatcherSlotForFormation(formation, cards)
+  local bestIndex = 1
+  local bestStrength = -math.huge
+  for index, guid in ipairs(formation or {}) do
+    local card = cards[guid]
+    local strength = card and printedStrength(card) or 0
+    if strength > bestStrength then bestIndex, bestStrength = index, strength end
+  end
+  return bestIndex
+end
+
+function watcherStateForPlans(watcherState, northPlan, southPlan, cards)
+  local state = copyMap(watcherState or {})
+  local watcher = WATCHER_DATA[state.currentWatcherId]
+  if not watcher or (watcher.kind ~= "swap-slots" and watcher.kind ~= "strength-penalty") then
+    return watcherState or state
+  end
+  state.formation = { north = northPlan.formation, south = southPlan.formation }
+  if watcher and (watcher.kind == "swap-slots" or watcher.kind == "strength-penalty") then
+    local choices = state.watcherChoices or {}
+    state.watcherChoices = {
+      north = choices.north or { slot = bestWatcherSlotForFormation(state.formation.south, cards) },
+      south = choices.south or { slot = bestWatcherSlotForFormation(state.formation.north, cards) },
+    }
+    state.watcherPostLockApplied = false
+    state = applyWatcherPostLockEffect(state)
+  end
+  state._watcherRules = nil
+  state._watcherRulesBase = nil
+  return state
+end
+
 function naturalEntryWinner(north, south, config)
   if not north or not south then return north and "north" or south and "south" or "tie" end
   return compareEntries(north, south, nil, nil, config)
 end
 
 -- Reference implementation used by tests to keep the optimized AI path aligned with live Clash rules.
-function simulateSkirmishWithResolver(northPlan, southPlan, cards, config)
+function simulateSkirmishWithResolver(northPlan, southPlan, cards, config, watcherState)
   local rules = config or CONFIG
+  local simulationWatcherState = watcherStateForPlans(watcherState, northPlan, southPlan, cards)
+  local watcherRules = copyMap(rules)
+  local watcherForSimulation = watcherModifiersForState(simulationWatcherState)
+  watcherRules.watcherWeaponStrength = watcherForSimulation.weaponStrength
+  watcherRules.watcherReverseWeaponTriangle = watcherForSimulation.reverseWeaponTriangle
+  watcherRules.watcherSuppressChains = watcherForSimulation.suppressChains
+  watcherRules.watcherStrengthPenalties = watcherForSimulation.strengthPenalties
+  local northSimulationPlan = northPlan
+  local southSimulationPlan = southPlan
+  if simulationWatcherState.formation then
+    northSimulationPlan = { formation = simulationWatcherState.formation.north, oaths = northPlan.oaths }
+    southSimulationPlan = { formation = simulationWatcherState.formation.south, oaths = southPlan.oaths }
+  end
   local combatState = {
-    formation = { north = northPlan.formation, south = southPlan.formation },
+    currentWatcherId = simulationWatcherState.currentWatcherId,
+    watcherChoices = simulationWatcherState.watcherChoices,
+    watcherStrengthPenalties = simulationWatcherState.watcherStrengthPenalties,
+    watcherPostLockApplied = simulationWatcherState.watcherPostLockApplied,
+    watcherNornsPending = simulationWatcherState.watcherNornsPending,
+    formation = { north = northSimulationPlan.formation, south = southSimulationPlan.formation },
     oaths = { north = northPlan.oaths or {}, south = southPlan.oaths or {} },
     cursor = { north = 1, south = 1 },
     chainBreaks = { north = {}, south = {} },
@@ -1076,7 +1342,11 @@ function simulateSkirmishWithResolver(northPlan, southPlan, cards, config)
   local clashesPlayed = 0
 
   for clash = 1, rules.cardsPerPlayer do
-    local penaltiesBefore = { north = combatState.penalties.north, south = combatState.penalties.south }
+    local watcherBefore = watcherModifiersForState(combatState)
+    local penaltiesBefore = {
+      north = combatState.penalties.north and not watcherBefore.skipBerserkerPenalty,
+      south = combatState.penalties.south and not watcherBefore.skipBerserkerPenalty,
+    }
     local resolution = resolveClashState(combatState, cards, rules, true)
     clashesPlayed = clash
 
@@ -1091,7 +1361,7 @@ function simulateSkirmishWithResolver(northPlan, southPlan, cards, config)
     local penaltiesActive = penaltiesBefore.north or penaltiesBefore.south
     local abilitiesSuppressed = penaltiesActive and rules.berserkerPenaltySuppressesAbilities
     if not abilitiesSuppressed and resolution.north and resolution.south then
-      local naturalWinner = naturalEntryWinner(resolution.north, resolution.south, rules)
+      local naturalWinner = naturalEntryWinner(resolution.north, resolution.south, watcherRules)
       for _, side in ipairs({ "north", "south" }) do
         local entry = resolution[side]
         local opponent = resolution[otherSide(side)]
@@ -1110,6 +1380,7 @@ function simulateSkirmishWithResolver(northPlan, southPlan, cards, config)
     combatState.penalties = resolution.nextPenalties
     combatState.previousDefeatMargins = resolution.nextDefeatMargins
     combatState.songBonuses = resolution.nextSongBonuses
+    combatState.watcherNornsPending = resolution.nextNornsPenaltyProtection
 
     local hasWinner = score.north >= rules.clashesToWinSkirmish or score.south >= rules.clashesToWinSkirmish
     local noWarriors = resolution.north == nil and resolution.south == nil
@@ -1138,8 +1409,32 @@ function simulateSkirmishWithResolver(northPlan, southPlan, cards, config)
 end
 
 -- Hot AI path: scalar state plus cached compact entries avoids display/log allocations per simulated Clash.
-function simulateSkirmish(northPlan, southPlan, cards, config)
-  local rules = config or CONFIG
+function simulateSkirmish(northPlan, southPlan, cards, config, watcherState)
+  local baseRules = config or CONFIG
+  local simulationWatcherState = watcherStateForPlans(watcherState, northPlan, southPlan, cards)
+  local watcher = watcherModifiersForState(simulationWatcherState)
+  local rules = baseRules
+  if watcherState then
+    rules = watcherState._watcherRules
+    if not rules or watcherState._watcherRulesBase ~= baseRules or simulationWatcherState ~= watcherState then
+      rules = copyMap(baseRules)
+      rules.watcherWeaponStrength = watcher.weaponStrength
+      rules.watcherReverseWeaponTriangle = watcher.reverseWeaponTriangle
+      rules.watcherSuppressChains = watcher.suppressChains
+      rules.watcherStrengthPenalties = watcher.strengthPenalties
+      if simulationWatcherState == watcherState then
+        watcherState._watcherRules = rules
+        watcherState._watcherRulesBase = baseRules
+      end
+    end
+  end
+  local nornsAvailable = watcher.skipBerserkerPenalty
+  local northSimulationPlan = northPlan
+  local southSimulationPlan = southPlan
+  if simulationWatcherState.formation then
+    northSimulationPlan = { formation = simulationWatcherState.formation.north, oaths = northPlan.oaths }
+    southSimulationPlan = { formation = simulationWatcherState.formation.south, oaths = southPlan.oaths }
+  end
   local northCursor = 1
   local southCursor = 1
   local northBreakMask = 0
@@ -1159,13 +1454,17 @@ function simulateSkirmish(northPlan, southPlan, cards, config)
   local clashesPlayed = 0
 
   for clash = 1, rules.cardsPerPlayer do
-    local north = compactEntryForPlanMask(northPlan, northCursor, northBreakMask, cards, rules)
-    local south = compactEntryForPlanMask(southPlan, southCursor, southBreakMask, cards, rules)
+    local north = compactEntryForPlanMask(northSimulationPlan, northCursor, northBreakMask, cards, rules, "north")
+    local south = compactEntryForPlanMask(southSimulationPlan, southCursor, southBreakMask, cards, rules, "south")
     local nextNorthCursor = north and north.endIndex + 1 or northCursor
     local nextSouthCursor = south and south.endIndex + 1 or southCursor
-    local northPenaltyActive = northPenalty
-    local southPenaltyActive = southPenalty
+    local northPenaltyActive = northPenalty and not nornsAvailable
+    local southPenaltyActive = southPenalty and not nornsAvailable
     local penaltiesActive = northPenaltyActive or southPenaltyActive
+    if nornsAvailable then
+      northPenalty = false
+      southPenalty = false
+    end
     local abilitiesSuppressed = penaltiesActive and rules.berserkerPenaltySuppressesAbilities
     local northAbilityBonus = heroAbilityBonusForEntry(north, northDefeatMargin, northSongBonus, rules)
     local southAbilityBonus = heroAbilityBonusForEntry(south, southDefeatMargin, southSongBonus, rules)
@@ -1184,11 +1483,11 @@ function simulateSkirmish(northPlan, southPlan, cards, config)
       southPenalty = false
     else
       if north.isShieldWall then
-        if rules.shieldWallCancelsCurrentChain then southStrength = south.printedStrength + southAbilityBonus end
+        if rules.shieldWallCancelsCurrentChain then southStrength = south.printedStrength + (south.watcherBonus or 0) + (south.watcherPenalty or 0) + southAbilityBonus end
         if rules.shieldWallBreaksFutureChain then southBreakMask = chainBreakMaskAdd(southBreakMask, south.endIndex + 1) end
       end
       if south.isShieldWall then
-        if rules.shieldWallCancelsCurrentChain then northStrength = north.printedStrength + northAbilityBonus end
+        if rules.shieldWallCancelsCurrentChain then northStrength = north.printedStrength + (north.watcherBonus or 0) + (north.watcherPenalty or 0) + northAbilityBonus end
         if rules.shieldWallBreaksFutureChain then northBreakMask = chainBreakMaskAdd(northBreakMask, north.endIndex + 1) end
       end
 
@@ -1213,11 +1512,15 @@ function simulateSkirmish(northPlan, southPlan, cards, config)
         if north.isBerserker or south.isBerserker then
           if north.isBerserker and south.isBerserker then
             winner = "tie"
-            northPenalty = true
-            southPenalty = true
+            if not nornsAvailable then
+              northPenalty = true
+              southPenalty = true
+            end
           else
             winner = north.isBerserker and "north" or "south"
-            if winner == "north" then northPenalty = true else southPenalty = true end
+            if not nornsAvailable then
+              if winner == "north" then northPenalty = true else southPenalty = true end
+            end
           end
         else
           winner = compareEntryStrengths(north, south, northStrength, southStrength, nil, nil, rules)
@@ -1265,6 +1568,7 @@ function simulateSkirmish(northPlan, southPlan, cards, config)
       nextSouthSongBonus = winner == "south" and rules.jarlWinBonus or winner == "tie" and rules.jarlTieBonus or rules.jarlLossBonus
     end
 
+    nornsAvailable = false
     northCursor = nextNorthCursor
     southCursor = nextSouthCursor
     northDefeatMargin = nextNorthDefeatMargin
@@ -1361,13 +1665,13 @@ function finalizeFormationMetrics(metrics, config)
   return metrics
 end
 
-function evaluateFormationPlan(aiSide, aiPlan, opponentPlans, cards, config)
+function evaluateFormationPlan(aiSide, aiPlan, opponentPlans, cards, config, watcherState)
   local rules = config or CONFIG
   local metrics = newFormationMetrics(aiPlan, #opponentPlans)
   for _, opponentPlan in ipairs(opponentPlans) do
     local northPlan = aiSide == "north" and aiPlan or opponentPlan
     local southPlan = aiSide == "south" and aiPlan or opponentPlan
-    recordFormationMatchup(metrics, aiSide, simulateSkirmish(northPlan, southPlan, cards, rules))
+    recordFormationMatchup(metrics, aiSide, simulateSkirmish(northPlan, southPlan, cards, rules, watcherState))
   end
   return finalizeFormationMetrics(metrics, rules)
 end
@@ -1413,7 +1717,7 @@ function selectNearOptimalEvaluation(evaluations, tolerance, random)
   return nearOptimal[index], #nearOptimal
 end
 
-function createStrategicFormationSearch(aiSide, aiHand, opponentHand, cards, config)
+function createStrategicFormationSearch(aiSide, aiHand, opponentHand, cards, config, watcherState)
   local rules = config or CONFIG
   local aiPlans = generateFormationPlans(aiHand, cards)
   local opponentPlans = generateFormationPlans(opponentHand, cards)
@@ -1421,6 +1725,7 @@ function createStrategicFormationSearch(aiSide, aiHand, opponentHand, cards, con
     aiSide = aiSide,
     cards = cards,
     rules = rules,
+    watcherState = watcherState,
     aiPlans = aiPlans,
     opponentPlans = opponentPlans,
     evaluations = {},
@@ -1440,7 +1745,7 @@ function advanceStrategicFormationSearch(search, batchSize)
     local opponentPlan = search.opponentPlans[search.nextOpponentIndex]
     local northPlan = search.aiSide == "north" and aiPlan or opponentPlan
     local southPlan = search.aiSide == "south" and aiPlan or opponentPlan
-    local result = simulateSkirmish(northPlan, southPlan, search.cards, search.rules)
+    local result = simulateSkirmish(northPlan, southPlan, search.cards, search.rules, search.watcherState)
     recordFormationMatchup(search.currentMetrics, search.aiSide, result)
     search.matchupsEvaluated = search.matchupsEvaluated + 1
     search.nextOpponentIndex = search.nextOpponentIndex + 1
@@ -1475,8 +1780,8 @@ function finishStrategicFormationSearch(search, random)
   }
 end
 
-function chooseStrategicFormation(aiSide, aiHand, opponentHand, cards, config, random)
-  local search = createStrategicFormationSearch(aiSide, aiHand, opponentHand, cards, config)
+function chooseStrategicFormation(aiSide, aiHand, opponentHand, cards, config, random, watcherState)
+  local search = createStrategicFormationSearch(aiSide, aiHand, opponentHand, cards, config, watcherState)
   advanceStrategicFormationSearch(search, #search.aiPlans * #search.opponentPlans)
   return finishStrategicFormationSearch(search, random)
 end
@@ -1531,6 +1836,106 @@ function sendToHand(card, color)
   if hand then
     card.setPositionSmooth(hand.position, false, true)
     card.setRotationSmooth(hand.rotation, false, true)
+  end
+end
+
+function prepareWatcherReveal()
+  if not CONFIG.godCardsEnabled then
+    STATE.phase = "DRAFT"
+    dealDraft()
+    return
+  end
+  local deck = getObjectFromGUID(WATCHER_DECK_GUID)
+  if not deck then
+    STATE.phase = "DRAFT"
+    addLog("Watcher deck is missing; continuing without a Watcher for this Skirmish.")
+    dealDraft()
+    return
+  end
+  deck.shuffle()
+  deck.takeObject({
+    position = watcherRevealLocalPosition(),
+    rotation = { x = 0, y = 180, z = 0 },
+    flip = true,
+    smooth = false,
+    callback_function = function(card)
+      if not card then
+        STATE.phase = "DRAFT"
+        addLog("Watcher could not be revealed; continuing without a Watcher for this Skirmish.")
+        dealDraft()
+        return
+      end
+      local watcherId = card.getGMNotes()
+      if not WATCHER_DATA[watcherId] then
+        deck.putObject(card)
+        STATE.phase = "DRAFT"
+        addLog("The Watcher deck contained an unknown card; continuing without its effect.")
+        dealDraft()
+        return
+      end
+      STATE.currentWatcherGuid = card.getGUID()
+      STATE.currentWatcherId = watcherId
+      card.clearButtons()
+      card.setLock(false)
+      ensureFaceUp(card)
+      card.setPosition(watcherRevealLocalPosition())
+      card.setLock(true)
+      addLog("Watcher revealed: " .. WATCHER_DATA[watcherId].name .. " — " .. WATCHER_DATA[watcherId].effect)
+      updateUi()
+    end,
+  })
+end
+
+function resumeWatcherReveal()
+  if not CONFIG.godCardsEnabled or STATE.phase ~= "WATCHER_REVEAL" then return end
+  local card = cardObject(STATE.currentWatcherGuid)
+  local watcherId = card and card.getGMNotes() or STATE.currentWatcherId
+  if card and WATCHER_DATA[watcherId] then
+    STATE.currentWatcherId = watcherId
+    card.setLock(false)
+    ensureFaceUp(card)
+    card.setPosition(watcherRevealLocalPosition())
+    card.setLock(true)
+    return
+  end
+  STATE.currentWatcherId = nil
+  STATE.currentWatcherGuid = nil
+  prepareWatcherReveal()
+end
+
+function advanceWatcherReveal(object, color)
+  if not hostGuard(color) or STATE.phase ~= "WATCHER_REVEAL" then return end
+  local watcher = watcherDefinition()
+  if not watcher then
+    broadcastToColor("The Watcher card is still loading. Try again in a moment.", color, { 1, 0.7, 0.25 })
+    return
+  end
+  STATE.phase = "DRAFT"
+  addLog((watcher and watcher.name or "The Watcher") .. " watches this Skirmish. The open draft begins.")
+  dealDraft()
+end
+
+function returnCurrentWatcherToDeck(callback)
+  local guid = STATE.currentWatcherGuid
+  local deck = getObjectFromGUID(WATCHER_DECK_GUID)
+  local card = cardObject(guid)
+  if not deck or not card then
+    if callback then callback() end
+    return
+  end
+  card.setLock(false)
+  ensureFaceDown(card)
+  deck.putObject(card)
+  STATE.currentWatcherGuid = nil
+  STATE.currentWatcherId = nil
+  if callback then Wait.frames(callback, 2) end
+end
+
+function returnAllWatchersToDeck(callback)
+  if STATE.currentWatcherGuid then
+    returnCurrentWatcherToDeck(callback)
+  elseif callback then
+    callback()
   end
 end
 
@@ -1614,7 +2019,7 @@ function onObjectDrop(playerColor, object)
   if not closestIndex then return end
 
   object.setLock(false)
-  ensureFaceDown(object)
+  if watcherForcesFaceUp(STATE.currentWatcherId, closestIndex) then ensureFaceUp(object) else ensureFaceDown(object) end
   object.setPosition(slotPosition(side, closestIndex))
   broadcastToColor("Card hidden in " .. sideName(side) .. " slot " .. closestIndex .. ".", color, { 0.91, 0.72, 0.35 })
 end
@@ -1660,16 +2065,14 @@ function commitFormation(side, object, color)
     local card = cardObject(guid)
     if card then
       card.setLock(false)
-      ensureFaceDown(card)
+      if watcherForcesFaceUp(STATE.currentWatcherId, index) then ensureFaceUp(card) else ensureFaceDown(card) end
       card.setPosition(slotPosition(side, index))
       card.setLock(true)
     end
   end
   addLog(sideName(side) .. " committed a hidden battle line.")
   if STATE.committed.north and STATE.committed.south then
-    STATE.phase = "OATHS"
-    addLog("Both battle lines are committed. Players choose Blood Oaths privately.")
-    aiChooseOaths()
+    beginPostLockWatcherPhase()
   else
     STATE.phase = "FORMATION_LOCKED"
     scheduleAiTurn(1)
@@ -1681,6 +2084,171 @@ function commitNorth(object, color) commitFormation("north", object, color) end
 function commitSouth(object, color) commitFormation("south", object, color) end
 function commitNorthUi(player, value, id) commitFormation("north", nil, callbackColor(player)) end
 function commitSouthUi(player, value, id) commitFormation("south", nil, callbackColor(player)) end
+
+function beginOathsPhase()
+  STATE.phase = "OATHS"
+  addLog("Both battle lines are committed. Players choose Blood Oaths privately.")
+  aiChooseOaths()
+  updateUi()
+end
+
+function watcherPrivateReveal(card, side, visible)
+  if not card or not card.setInvisibleTo then return end
+  local opponentColor = colorForSide(otherSide(side))
+  if not opponentColor or opponentColor == "AI" then
+    card.setInvisibleTo({})
+  elseif visible then
+    card.setInvisibleTo({ opponentColor })
+  else
+    card.setInvisibleTo({})
+  end
+end
+
+function watcherViewSlot(side, index)
+  local choice = STATE.watcherChoices[side]
+  local guid = STATE.formation[otherSide(side)][index]
+  local card = cardObject(guid)
+  if not choice or not card then return false end
+  choice.slot = index
+  choice.viewedGuid = guid
+  choice.viewing = true
+  card.setLock(false)
+  watcherPrivateReveal(card, side, true)
+  ensureFaceUp(card)
+  card.setLock(true)
+  broadcastToColor("Frigg reveals the enemy card in slot " .. index .. " to you only. Press DONE VIEWING when finished.", colorForSide(side), { 0.91, 0.72, 0.35 })
+  updateUi()
+  return true
+end
+
+function finishWatcherView(side)
+  local choice = STATE.watcherChoices[side]
+  if not choice or not choice.viewing then return false end
+  local card = cardObject(choice.viewedGuid)
+  if card then
+    card.setLock(false)
+    ensureFaceDown(card)
+    watcherPrivateReveal(card, side, false)
+    card.setLock(true)
+  end
+  choice.viewing = false
+  choice.done = true
+  addLog(sideName(side) .. " privately viewed one enemy card with Frigg.")
+  return true
+end
+
+function applyLiveWatcherPostLockEffect()
+  local nextState = applyWatcherPostLockEffect(STATE)
+  STATE.formation = nextState.formation
+  STATE.watcherStrengthPenalties = nextState.watcherStrengthPenalties
+  STATE.watcherPostLockApplied = true
+  for _, side in ipairs({ "north", "south" }) do
+    for index, guid in ipairs(STATE.formation[side] or {}) do
+      local card = cardObject(guid)
+      if card then
+        card.setLock(false)
+        ensureFaceDown(card)
+        card.setPosition(slotPosition(side, index))
+        card.setLock(true)
+      end
+    end
+  end
+end
+
+function finishWatcherChoices()
+  if STATE.phase ~= "WATCHER_CHOICES" or not watcherChoiceComplete("north") or not watcherChoiceComplete("south") then return end
+  local watcher = watcherDefinition()
+  if watcher and watcher.kind ~= "view-slot" then applyLiveWatcherPostLockEffect() end
+  STATE.phase = "OATHS"
+  addLog((watcher and watcher.name or "The Watcher") .. "'s post-lock effect is resolved. Players choose Blood Oaths privately.")
+  aiChooseOaths()
+  updateUi()
+end
+
+function chooseBestWatcherSlot(side)
+  local enemy = otherSide(side)
+  local bestIndex = 1
+  local bestStrength = -math.huge
+  for index, guid in ipairs(STATE.formation[enemy] or {}) do
+    local card = cardMeta(guid)
+    local strength = card and printedStrength(card) or 0
+    if strength > bestStrength then bestIndex, bestStrength = index, strength end
+  end
+  return bestIndex
+end
+
+function aiChooseWatcher()
+  local side = getAiSide()
+  if not side or STATE.phase ~= "WATCHER_CHOICES" then return end
+  local choice = STATE.watcherChoices[side]
+  if not choice or choice.done or choice.viewing then return end
+  local kind = watcherChoiceKind()
+  if kind == "swap-slots" or kind == "strength-penalty" then choice.slot = chooseBestWatcherSlot(side) end
+  choice.done = true
+  addLog("AI sealed its private " .. (kind == "view-slot" and "Frigg view" or "Watcher choice") .. ".")
+  finishWatcherChoices()
+end
+
+function beginPostLockWatcherPhase()
+  if not watcherNeedsPostLockChoices() then
+    beginOathsPhase()
+    return
+  end
+  STATE.phase = "WATCHER_CHOICES"
+  STATE.watcherChoices = { north = { done = false }, south = { done = false } }
+  addLog("Both battle lines are locked. Players resolve the Watcher effect privately.")
+  aiChooseWatcher()
+  updateUi()
+end
+
+function chooseWatcherSlot(player, value, id)
+  local color = callbackColor(player)
+  local side, slotText = string.match(id or "", "^(north|south)%-watcher%-slot%-(%d+)$")
+  local index = tonumber(slotText)
+  if not side or not index or not color or not playerGuard(side, color) then return end
+  if STATE.phase ~= "WATCHER_CHOICES" or not watcherSlotValid(side, index) then return end
+  local choice = STATE.watcherChoices[side]
+  if not choice or choice.done or choice.viewing then return end
+  if watcherChoiceKind() == "view-slot" then
+    watcherViewSlot(side, index)
+  else
+    choice.slot = index
+    updateUi()
+  end
+end
+
+function skipWatcherChoice(player, value, id)
+  local color = callbackColor(player)
+  local side = string.match(id or "", "^(north|south)%-watcher%-skip$")
+  if not side or not color or not playerGuard(side, color) or STATE.phase ~= "WATCHER_CHOICES" then return end
+  if watcherChoiceKind() ~= "view-slot" then return end
+  local choice = STATE.watcherChoices[side]
+  if not choice or choice.done or choice.viewing then return end
+  choice.done = true
+  addLog(sideName(side) .. " declined Frigg's optional look.")
+  finishWatcherChoices()
+end
+
+function finishWatcherChoice(player, value, id)
+  local color = callbackColor(player)
+  local side = string.match(id or "", "^(north|south)%-watcher%-done$")
+  if not side or not color or not playerGuard(side, color) or STATE.phase ~= "WATCHER_CHOICES" then return end
+  local choice = STATE.watcherChoices[side]
+  if not choice or choice.done then return end
+  if choice.viewing then
+    finishWatcherView(side)
+  elseif watcherChoiceKind() ~= "view-slot" and choice.slot then
+    choice.done = true
+    addLog(sideName(side) .. " sealed a private Watcher choice.")
+  elseif watcherChoiceKind() == "view-slot" then
+    choice.done = true
+    addLog(sideName(side) .. " declined Frigg's optional look.")
+  else
+    broadcastToColor("Choose an enemy slot before sealing this Watcher choice.", color, { 1, 0.7, 0.25 })
+    return
+  end
+  finishWatcherChoices()
+end
 
 function toggleOath(player, value, id)
   local color = callbackColor(player)
@@ -2032,6 +2600,7 @@ function resolveNextClash(object, color)
   STATE.penalties.south = resolution.nextPenalties.south
   STATE.previousDefeatMargins = resolution.nextDefeatMargins
   STATE.songBonuses = resolution.nextSongBonuses
+  STATE.watcherNornsPending = resolution.nextNornsPenaltyProtection
   STATE.currentResolution = resolution
 
   local hasWinner = STATE.clashWins.north >= CONFIG.clashesToWinSkirmish or STATE.clashWins.south >= CONFIG.clashesToWinSkirmish
@@ -2104,7 +2673,13 @@ function beginSkirmish(leader)
   nextVisualGeneration()
   clearOathMarkers()
   clearResultTexts()
-  STATE.phase = "DRAFT"
+  STATE.phase = CONFIG.godCardsEnabled and "WATCHER_REVEAL" or "DRAFT"
+  STATE.currentWatcherId = nil
+  STATE.currentWatcherGuid = nil
+  STATE.watcherChoices = { north = nil, south = nil }
+  STATE.watcherStrengthPenalties = { north = {}, south = {} }
+  STATE.watcherPostLockApplied = false
+  STATE.watcherNornsPending = true
   STATE.leader = leader
   STATE.draftTurn = leader
   STATE.pool = {}
@@ -2123,7 +2698,7 @@ function beginSkirmish(leader)
   STATE.lastWinner = nil
   STATE.skirmishCards = {}
   addLog("Skirmish " .. STATE.skirmish .. ": " .. sideName(leader) .. " drafts first.")
-  prepareDraft()
+  if CONFIG.godCardsEnabled then prepareWatcherReveal() else prepareDraft() end
 end
 
 function returnAllCardsToDeck(callback)
@@ -2180,15 +2755,19 @@ function startWar(object, color)
   returnSkirmishTokensToBag()
   clearOathMarkers()
   clearResultTexts()
-  STATE = newState()
-  STATE.visualGeneration = visualGeneration
-  STATE.sideColors.north = northColor
-  STATE.sideColors.south = southColor
-  addLog("War setup complete. The battle deck is ready.")
-  local ai = getAiSide()
-  if ai then addLog("Solo mode: AI controls " .. sideName(ai) .. ".") end
   local leader = math.random() < 0.5 and "north" or "south"
-  returnAllCardsToDeck(function() beginSkirmish(leader) end)
+  returnAllCardsToDeck(function()
+    returnAllWatchersToDeck(function()
+      STATE = newState()
+      STATE.visualGeneration = visualGeneration
+      STATE.sideColors.north = northColor
+      STATE.sideColors.south = southColor
+      addLog("War setup complete. The battle deck is ready.")
+      local ai = getAiSide()
+      if ai then addLog("Solo mode: AI controls " .. sideName(ai) .. ".") end
+      beginSkirmish(leader)
+    end)
+  end)
 end
 
 function nextSkirmish(object, color)
@@ -2196,11 +2775,15 @@ function nextSkirmish(object, color)
   returnClashTokensToBag()
   local leader
   if STATE.lastWinner == "north" then leader = "south" elseif STATE.lastWinner == "south" then leader = "north" else leader = otherSide(STATE.leader) end
-  STATE.skirmish = STATE.skirmish + 1
-  beginSkirmish(leader)
+  local nextSkirmishNumber = STATE.skirmish + 1
+  returnCurrentWatcherToDeck(function()
+    STATE.skirmish = nextSkirmishNumber
+    beginSkirmish(leader)
+  end)
 end
 
 function startWarUi(player, value, id) startWar(nil, callbackColor(player)) end
+function advanceWatcherRevealUi(player, value, id) advanceWatcherReveal(nil, callbackColor(player)) end
 function revealOathsUi(player, value, id) revealOaths(nil, callbackColor(player)) end
 function revealNextClashUi(player, value, id) resolveNextClash(nil, callbackColor(player)) end
 function endSkirmishUi(player, value, id) endSkirmish(nil, callbackColor(player)) end
@@ -2472,6 +3055,17 @@ function installMusicConsole()
   return true
 end
 
+function updateWatcherSlotButton(side, index)
+  local id = side .. "-watcher-slot-" .. index
+  local choice = STATE.watcherChoices and STATE.watcherChoices[side]
+  local active = STATE.phase == "WATCHER_CHOICES" and choice ~= nil and not choice.done and not choice.viewing and watcherSlotValid(side, index)
+  UI.setAttribute(id, "active", tostring(active))
+  UI.setAttribute(id, "text", choice and choice.slot == index and "SLOT " .. index .. " ✓" or "SLOT " .. index)
+  UI.setAttribute(id, "color", choice and choice.slot == index and "#963c34" or "#6b3c26")
+  UI.setAttribute(id, "textColor", "#f4ead7")
+  return active
+end
+
 function updateOathButton(side, index)
   local id = side .. "-oath-" .. index
   local guid = STATE.formation[side][index]
@@ -2499,9 +3093,11 @@ end
 
 function phaseHelp()
   if STATE.phase == "SETUP" then return "Claim a side, then start. Solo assigns the other side to AI." end
+  if STATE.phase == "WATCHER_REVEAL" then return "The Watcher sets this Skirmish's rule. The host advances to the open draft." end
   if STATE.phase == "DRAFT" then return "Take one face-up card on your turn; it moves to your private hand." end
   if STATE.phase == "FORMATION" then return "Drop five cards into your mat's nearest row, then commit." end
   if STATE.phase == "FORMATION_LOCKED" then return "Line committed. Waiting for the other side." end
+  if STATE.phase == "WATCHER_CHOICES" then return "Resolve the Watcher's private choice, then continue to Blood Oaths." end
   if STATE.phase == "OATHS" then return "Optionally swear a Blood Oath in your private panel, then reveal." end
   if STATE.phase == "RESOLUTION" then return "Reveal the next Clash; strength math appears above the line." end
   if STATE.phase == "SKIRMISH_READY" then return "Check the final Clash, then end the Skirmish." end
@@ -2518,6 +3114,8 @@ function updateUi()
   UI.setAttribute("status", "text", status)
   UI.setAttribute("score", "text", "North " .. STATE.tokens.north .. "/" .. CONFIG.skirmishesToWin .. " · South " .. STATE.tokens.south .. "/" .. CONFIG.skirmishesToWin .. " · Clash " .. STATE.clashWins.north .. "–" .. STATE.clashWins.south)
   UI.setAttribute("phase-help", "text", phaseHelp())
+  local watcher = watcherDefinition()
+  UI.setAttribute("watcher-status", "text", watcher and ("Watcher · " .. watcher.name .. " · " .. watcher.title) or "No Watcher active")
 
   local setup = STATE.phase == "SETUP" or STATE.phase == "WAR_COMPLETE"
   local formation = STATE.phase == "FORMATION" or STATE.phase == "FORMATION_LOCKED"
@@ -2530,11 +3128,13 @@ function updateUi()
   updateControlButton("north-commit", northCommitActive)
   updateControlButton("south-commit", southCommitActive)
   updateControlButton("start-war", setup)
+  updateControlButton("advance-watcher", STATE.phase == "WATCHER_REVEAL")
   updateControlButton("reveal-oaths", STATE.phase == "OATHS")
   updateControlButton("reveal-clash", STATE.phase == "RESOLUTION")
   updateControlButton("end-skirmish", STATE.phase == "SKIRMISH_READY")
   updateControlButton("next-skirmish", STATE.phase == "SKIRMISH_COMPLETE")
   updateControlSection("setup-controls", setup)
+  updateControlSection("watcher-reveal-controls", STATE.phase == "WATCHER_REVEAL")
   updateControlSection("formation-controls", northCommitActive or southCommitActive)
   updateControlSection("oath-controls", STATE.phase == "OATHS")
   updateControlSection("resolution-controls", STATE.phase == "RESOLUTION")
@@ -2545,6 +3145,21 @@ function updateUi()
   UI.setAttribute("south-oath-panel", "visibility", visibleSideColor("south"))
   UI.setAttribute("north-oath-panel", "active", tostring(STATE.phase == "OATHS"))
   UI.setAttribute("south-oath-panel", "active", tostring(STATE.phase == "OATHS"))
+  for _, side in ipairs({ "north", "south" }) do
+    UI.setAttribute(side .. "-watcher-panel", "visibility", visibleSideColor(side))
+    UI.setAttribute(side .. "-watcher-panel", "active", tostring(STATE.phase == "WATCHER_CHOICES"))
+    for index = 1, CONFIG.cardsPerPlayer do updateWatcherSlotButton(side, index) end
+    local choice = STATE.watcherChoices and STATE.watcherChoices[side]
+    local statusText = watcherChoiceKind() == "view-slot" and "Choose an enemy slot to view privately, or skip." or "Choose an enemy slot, then seal."
+    if choice and choice.slot and not choice.done and not choice.viewing then statusText = "Slot " .. choice.slot .. " selected. Seal when ready." end
+    if choice and choice.viewing then statusText = "Card is visible to you only. Press DONE VIEWING." end
+    if choice and choice.done then statusText = "Choice sealed. Waiting for the other side." end
+    UI.setAttribute(side .. "-watcher-status", "text", statusText)
+    local doneActive = STATE.phase == "WATCHER_CHOICES" and choice ~= nil and not choice.done
+    UI.setAttribute(side .. "-watcher-done", "active", tostring(doneActive))
+    UI.setAttribute(side .. "-watcher-done", "text", choice and choice.viewing and "DONE VIEWING" or "SEAL CHOICE")
+    UI.setAttribute(side .. "-watcher-skip", "active", tostring(STATE.phase == "WATCHER_CHOICES" and watcherChoiceKind() == "view-slot" and choice ~= nil and not choice.done and not choice.viewing))
+  end
   local northOathOptions = 0
   local southOathOptions = 0
   for index = 1, CONFIG.cardsPerPlayer do
@@ -2576,12 +3191,20 @@ function migrateLoadedState()
     STATE.previousDefeatMargins = STATE.previousDefeatMargins or { north = 0, south = 0 }
     STATE.songBonuses = STATE.songBonuses or { north = 0, south = 0 }
   end
+  if version < 5 then
+    STATE.currentWatcherId = STATE.currentWatcherId or nil
+    STATE.currentWatcherGuid = STATE.currentWatcherGuid or nil
+    STATE.watcherChoices = STATE.watcherChoices or { north = nil, south = nil }
+    STATE.watcherStrengthPenalties = STATE.watcherStrengthPenalties or { north = {}, south = {} }
+    STATE.watcherPostLockApplied = STATE.watcherPostLockApplied or false
+    STATE.watcherNornsPending = STATE.watcherNornsPending ~= false
+  end
 end
 
 function normalizeLoadedState()
   migrateLoadedState()
   local defaults = newState()
-  local sideTables = { "sideColors", "hands", "formation", "committed", "oaths", "cursor", "chainBreaks", "penalties", "previousDefeatMargins", "songBonuses", "clashWins", "tokens", "oathMarkers", "skirmishTokens" }
+  local sideTables = { "sideColors", "hands", "formation", "committed", "oaths", "cursor", "chainBreaks", "penalties", "previousDefeatMargins", "songBonuses", "clashWins", "tokens", "oathMarkers", "skirmishTokens", "watcherStrengthPenalties" }
   for _, field in ipairs(sideTables) do
     if type(STATE[field]) ~= "table" then STATE[field] = defaults[field] end
     for _, side in ipairs({ "north", "south" }) do
@@ -2591,16 +3214,17 @@ function normalizeLoadedState()
   for _, field in ipairs({ "discard", "clashTokens", "resultTexts", "skirmishCards", "log" }) do
     if type(STATE[field]) ~= "table" then STATE[field] = defaults[field] end
   end
-  for field, value in pairs({ skirmish = 1, leader = "north", draftTurn = "north", currentClash = 1 }) do
+  for field, value in pairs({ skirmish = 1, leader = "north", draftTurn = "north", currentClash = 1, watcherPostLockApplied = false, watcherNornsPending = true }) do
     if STATE[field] == nil then STATE[field] = value end
   end
+  if type(STATE.watcherChoices) ~= "table" then STATE.watcherChoices = { north = nil, south = nil } end
   if #STATE.skirmishCards == 0 then
     for _, side in ipairs({ "north", "south" }) do
       for _, guid in ipairs(STATE.hands[side] or {}) do appendUnique(STATE.skirmishCards, guid) end
       for _, guid in ipairs(STATE.formation[side] or {}) do appendUnique(STATE.skirmishCards, guid) end
     end
   end
-  STATE.stateVersion = 4
+  STATE.stateVersion = 5
   STATE.pendingVisuals = 0
   STATE.visualGeneration = (STATE.visualGeneration or 0) + 1
   if not CONFIG.soloMode then
@@ -2622,6 +3246,7 @@ function onLoad(savedData)
   installBoardButtons()
   installPanelButtons()
   installMusicConsole()
+  if STATE.phase == "WATCHER_REVEAL" then resumeWatcherReveal() end
   updateUi()
   scheduleAiTurn(10)
 end

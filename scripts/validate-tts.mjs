@@ -10,14 +10,15 @@ const musicManifest = JSON.parse(readFileSync(join(root, 'tts/music-playlist.jso
 
 if (!existsSync(savePath)) throw new Error('Missing tts/build/Norse Kode.json; run npm run build:tts first.')
 const save = JSON.parse(readFileSync(savePath, 'utf8'))
-const deck = save.ObjectStates.find((object) => object.Name === 'DeckCustom')
+const deck = save.ObjectStates.find((object) => object.Nickname === 'Norse Kode Deck')
+const watcherDeck = save.ObjectStates.find((object) => object.Nickname === 'Norse Kode Watcher Deck')
 const tokenBag = save.ObjectStates.find((object) => object.Nickname === 'Clash Token Bag')
 const skirmishBag = save.ObjectStates.find((object) => object.Nickname === 'Skirmish Token Bag')
 const musicConsole = save.ObjectStates.find((object) => object.Nickname === 'Voiceless Edda Music Console')
 const cards = deck?.ContainedObjects ?? []
 const objectsAndCards = save.ObjectStates.flatMap((object) => [object, ...(object.ContainedObjects ?? [])])
 const guids = objectsAndCards.map((object) => object.GUID)
-const assets = ['norse-kode-table.png', 'norse-kode-battlefield-table.png', 'norse-kode-fjord-sky.png', 'norse-kode-deck.png', 'card-back.png', 'norse-kode-player-mat.png', 'norse-kode-player-mat-base.png', 'norse-kode-music-console.png', 'norse-clash-token.png', 'norse-skirmish-token.png', 'oath-yes.png', 'oath-no.png']
+const assets = ['norse-kode-table.png', 'norse-kode-battlefield-table.png', 'norse-kode-fjord-sky.png', 'norse-kode-deck.png', 'norse-kode-watchers.png', 'card-back.png', 'norse-kode-player-mat.png', 'norse-kode-player-mat-base.png', 'norse-kode-music-console.png', 'norse-clash-token.png', 'norse-skirmish-token.png', 'oath-yes.png', 'oath-no.png']
 const isUsableImageReference = (imageUrl) => typeof imageUrl === 'string' && imageUrl.startsWith('https://')
 const pngSize = (path) => {
   const data = readFileSync(path)
@@ -27,8 +28,8 @@ const pngSize = (path) => {
 
 if (save.Table !== 'Table_Custom' || !isUsableImageReference(save.TableURL)) throw new Error('Save has no usable custom battlefield table.')
 if (save.Sky !== 'Sky_Museum' || !isUsableImageReference(save.SkyURL)) throw new Error('Save has no usable custom fjord background.')
-if (!deck) throw new Error('Save has no custom deck.')
-if (save.ObjectStates.length !== 14) throw new Error(`Expected 14 top-level objects, got ${save.ObjectStates.length}.`)
+if (!deck || !watcherDeck) throw new Error('Save is missing the battle or Watcher deck.')
+if (save.ObjectStates.length !== 15) throw new Error(`Expected 15 top-level objects, got ${save.ObjectStates.length}.`)
 if (musicConsole?.Name !== 'Custom_Tile' || musicConsole.GUID !== 'm00001' || !musicConsole.Locked || !isUsableImageReference(musicConsole.CustomImage?.ImageURL)) throw new Error('Save has no usable locked music console.')
 if (tokenBag?.Name !== 'Infinite_Bag' || tokenBag.ContainedObjects?.[0]?.Name !== 'Custom_Token') throw new Error('Save has no thematic Clash-token bag.')
 if (skirmishBag?.Name !== 'Infinite_Bag' || skirmishBag.ContainedObjects?.[0]?.Name !== 'Custom_Token') throw new Error('Save has no thematic Skirmish-token bag.')
@@ -40,11 +41,15 @@ for (const markerName of ['Oath YES Marker Bag', 'Oath NO Marker Bag']) {
   const marker = save.ObjectStates.find((object) => object.Nickname === markerName)
   if (marker?.Name !== 'Infinite_Bag' || marker.ContainedObjects?.[0]?.Name !== 'Custom_Token' || !marker.ContainedObjects[0].CustomImage?.ImageURL?.startsWith('https://')) throw new Error(`Save has no usable ${markerName}.`)
 }
-if (cards.length !== 42) throw new Error(`Expected 42 cards, got ${cards.length}.`)
-if (new Set(cards.map((card) => card.GMNotes)).size !== 42) throw new Error('Card metadata IDs are not unique.')
-if (deck.DeckIDs?.[0] !== 100 || deck.DeckIDs?.[41] !== 141) throw new Error('Custom deck IDs must map atlas indices 0 through 41.')
+if (cards.length !== 42) throw new Error(`Expected 42 battle cards, got ${cards.length}.`)
+if (new Set(cards.map((card) => card.GMNotes)).size !== 42) throw new Error('Battle card metadata IDs are not unique.')
+if (deck.DeckIDs?.[0] !== 100 || deck.DeckIDs?.[41] !== 141) throw new Error('Custom battle deck IDs must map atlas indices 0 through 41.')
+const watcherCards = watcherDeck.ContainedObjects ?? []
+if (watcherCards.length !== 10) throw new Error(`Expected 10 Watcher cards, got ${watcherCards.length}.`)
+if (watcherDeck.DeckIDs?.[0] !== 200 || watcherDeck.DeckIDs?.[9] !== 209) throw new Error('Watcher deck IDs must map atlas indices 0 through 9.')
 if (new Set(guids).size !== guids.length) throw new Error('Save object GUIDs are not unique.')
-if (deck.CustomDeck?.['1']?.NumWidth !== 7 || deck.CustomDeck?.['1']?.NumHeight !== 6) throw new Error('Expected a 7x6 custom deck atlas.')
+if (deck.CustomDeck?.['1']?.NumWidth !== 7 || deck.CustomDeck?.['1']?.NumHeight !== 6) throw new Error('Expected a 7x6 custom battle deck atlas.')
+if (watcherDeck.CustomDeck?.['2']?.NumWidth !== 5 || watcherDeck.CustomDeck?.['2']?.NumHeight !== 2) throw new Error('Expected a 5x2 custom Watcher deck atlas.')
 for (const asset of assets) {
   if (!existsSync(join(assetDir, asset))) throw new Error(`Missing generated TTS asset: ${asset}`)
 }
@@ -79,6 +84,8 @@ const imageUrls = [
   save.ObjectStates.find((object) => object.Nickname === 'Norse Kode Board')?.CustomImage?.ImageURL,
   deck.CustomDeck?.['1']?.FaceURL,
   deck.CustomDeck?.['1']?.BackURL,
+  watcherDeck.CustomDeck?.['2']?.FaceURL,
+  watcherDeck.CustomDeck?.['2']?.BackURL,
   ...['North Player Mat', 'South Player Mat'].map((name) => save.ObjectStates.find((object) => object.Nickname === name)?.CustomImage?.ImageURL),
   musicConsole.CustomImage.ImageURL,
   ...['Clash Token Bag', 'Skirmish Token Bag', 'Oath YES Marker Bag', 'Oath NO Marker Bag'].map((name) => save.ObjectStates.find((object) => object.Nickname === name)?.ContainedObjects?.[0]?.CustomImage?.ImageURL),
@@ -93,7 +100,7 @@ for (const [index, track] of musicManifest.tracks.entries()) {
   if (!url.startsWith('https://') || !url.endsWith(`/music/${track.file}`)) throw new Error(`Unusable music URL for ${track.file}: ${url}`)
   if (title !== track.title) throw new Error(`Unexpected embedded music title at track ${index + 1}: ${title}`)
 }
-for (const functionName of ['onLoad', 'startWar', 'revealOaths', 'resolveNextClash', 'endSkirmish', 'placeSkirmishToken', 'nextSkirmish', 'installMusicConsole', 'musicTogglePlay']) {
+for (const functionName of ['onLoad', 'startWar', 'prepareWatcherReveal', 'resumeWatcherReveal', 'advanceWatcherReveal', 'advanceWatcherRevealUi', 'beginPostLockWatcherPhase', 'chooseWatcherSlot', 'revealOaths', 'resolveNextClash', 'endSkirmish', 'placeSkirmishToken', 'nextSkirmish', 'installMusicConsole', 'musicTogglePlay']) {
   if (!save.LuaScript.includes(`function ${functionName}`)) throw new Error(`Embedded Lua is missing ${functionName}.`)
 }
 if (!save.XmlUI.includes('north-oath-panel') || !save.XmlUI.includes('south-oath-panel')) throw new Error('Embedded UI is missing private oath panels.')

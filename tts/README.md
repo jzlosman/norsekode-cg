@@ -11,8 +11,9 @@ This directory contains the multiplayer tabletop version of Norse Kode. TTS is t
 - `assets/norse-kode-table.png` — original wood-and-iron board with mapped draft, draw, and face-up discard wells
 - `assets/norse-kode-battlefield-table.png` — top-down frozen battlefield texture for the Custom Rectangle table
 - `assets/norse-kode-fjord-sky.png` — 360° snowy-fjord custom background
-- `assets/norse-kode-deck.png` — 42-card, 7×6 TTS deck atlas
-- `assets/card-back.png` — card back
+- `assets/norse-kode-deck.png` — 42-card, 7×6 battle deck atlas
+- `assets/norse-kode-watchers.png` — 10-card, 5×2 Watcher deck atlas
+- `assets/card-back.png` — shared card back
 - `assets/norse-kode-player-mat-base.png` — generated base art for the player mat
 - `assets/norse-kode-player-mat.png` — natural wood-and-iron player mat with card guides, ordered Blood Oath spaces, Clash spaces, and five-win track
 - `music-playlist.json` — ordered Voiceless Edda track metadata and URL-safe filenames
@@ -53,6 +54,7 @@ NORSE_KODE_TABLE_URL=https://... \\
 NORSE_KODE_TABLE_SURFACE_URL=https://... \\
 NORSE_KODE_SKY_URL=https://... \\
 NORSE_KODE_CARDS_URL=https://... \\
+NORSE_KODE_WATCHERS_URL=https://... \\
 NORSE_KODE_CARD_BACK_URL=https://... \\
 NORSE_KODE_MANIFEST_URL=https://... \\
 NORSE_KODE_PLAYER_MAT_URL=https://... \\
@@ -65,15 +67,16 @@ NORSE_KODE_OATH_NO_URL=https://... \\
 npm run build:tts
 ```
 
-TTS uses the custom tabletop, custom background, board, deck atlas, card-back, player mat, music, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
+TTS uses the custom tabletop, custom background, board, battle and Watcher deck atlases, card-back, player mat, music, and marker URLs. The manifest URL is retained in the save's Rules field for debugging and asset provenance; Lua has the card metadata embedded so it does not need to fetch the manifest.
 
 ## Load in TTS
 
 1. Copy `tts/build/Norse Kode.json` into your TTS local saves directory.
 2. Open TTS and load the **Norse Kode** save.
 3. For solo play, sit in any one color and click **CLAIM NORTH** or **CLAIM SOUTH**. The unclaimed side is controlled by the solo AI. For multiplayer, have two players sit in any two colors and claim opposite sides.
-4. The host clicks **START WAR**.
-5. Save the loaded table as a local save and optionally upload it to the Workshop for friends.
+4. To play Watchers, edit `CONFIG.godCardsEnabled = true` in the embedded Lua controller. Leave it false for the original ruleset.
+5. The host clicks **START WAR**.
+6. Save the loaded table as a local save and optionally upload it to the Workshop for friends.
 
 ### Physical music console
 
@@ -86,6 +89,14 @@ Typical save locations:
 - Linux: `~/.local/share/Tabletop Simulator/Saves/`
 
 ## Multiplayer flow
+
+### Watchers
+
+When enabled, the separate Watcher deck reveals one card at the start of each Skirmish. The host advances the revealed card into the draft. BEFORE · DRAFT effects modify the draft's later calculations; BEFORE · CLASH 1 effects are consumed by the first Clash. The card remains face-up beside the draw area for inspection and returns to its deck between Skirmishes.
+
+Thor, Týr, and Odin add +1 Strength to the matching weapon. Njörðr reverses the weapon tie-break triangle. Fimbulwinter removes all weapon-chain bonuses for the Skirmish. The Norns prevent the Berserker penalty caused by the next Berserker trigger. Heimdall keeps formation position 3 face-up.
+
+After both lines lock, Loki and Skaði require each player to choose an enemy slot privately and seal it. Loki swaps the two selected warriors into the selected enemy positions and recalculates chains. Skaði applies -2 Strength to each selected warrior for its Clash. Frigg optionally lets each player privately view one enemy card; the card is returned face-down with no changes allowed. These interactions are enforced in Lua and must finish before Blood Oaths.
 
 ### Draft
 
@@ -125,7 +136,7 @@ The default TTS configuration mirrors `src/game/config.ts`:
 - Ravenfeeder strength 12
 - Shield Maiden Vengeance is uncapped
 - Jarl Lead by Example grants +3 after a win, +2 after a tie, or +1 after a loss
-- Gods disabled
+- Watchers disabled by default; enable with `CONFIG.godCardsEnabled = true` in `tts/norse-kode.lua`
 
 The solo draft AI still takes the highest printed-strength legal card; strategic drafting is a separate future step. Formation search behavior is tunable through the `ai*` fields in `CONFIG`, including the near-optimal randomization tolerance, worst-case weight, and per-frame search batch size.
 

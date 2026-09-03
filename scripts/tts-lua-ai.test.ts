@@ -17,6 +17,11 @@ const scenarios = [
   'near_optimal_randomization',
   'incremental_search',
   'state_migration',
+  'watcher_metadata_and_modifiers',
+  'watcher_resolver_effects',
+  'watcher_post_lock_choices',
+  'watcher_ai_oracle',
+  'watcher_private_view',
   'full_strategic_choice',
 ]
 

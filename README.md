@@ -29,10 +29,11 @@ The public [`jzlosman/norsekode-cg`](https://github.com/jzlosman/norsekode-cg) r
 
 ## Card artwork
 
-The generated deck lives in `public/assets/cards/` as 42 individual 750×1050 PNG fronts plus `card-back.png`. Source illustrations are in `public/assets/card-art/`; the layout is reproducible with ImageMagick:
+The 42-card battle deck lives in `public/assets/cards/` as individual 750×1050 PNG fronts plus `card-back.png`. The ten Watcher fronts live separately in `public/assets/watchers/` with their own manifest and are bundled into a separate TTS Watcher deck atlas. Source illustrations are in `public/assets/card-art/`; both layouts are reproducible with ImageMagick:
 
 ```bash
 npm run generate:cards
+npm run generate:watchers
 ```
 
 The generator builds a branded **Night & Saga** deck: dark suit cards with runic ranks and familiar illustrated weapon pips, plus color-coded bone cinematic-etching Hero cards. Shield Maiden uses **Vengeance** as a primary warrior, drawing on the previous numeric defeat margin; Jarl uses **Lead by Example** to strengthen the next entry based on his Clash result, even when Bloodsworn consumes him.
@@ -46,8 +47,9 @@ npm run build
 
 ## Prototype notes
 
-- `src/game/cards.ts` contains the 42 Battle Cards and 10 reserved God/Mythos cards.
+- `src/game/cards.ts` contains the 42 Battle Cards and the browser prototype's reserved God/Mythos placeholders.
 - `src/game/config.ts` contains balance and unresolved behavior switches.
 - `src/game/engine.ts` is the pure, data-driven rules core.
-- God cards are decorative and disabled by default.
+- `tts/norse-kode.lua` owns the playable Watcher rules, timing, private choices, and TTS resolution; set `CONFIG.godCardsEnabled = true` there to play them.
+- The browser prototype remains decorative/disabled until its separate engine/UI port is requested.
 - Shield Maiden and Jarl are active, configurable Hero abilities.

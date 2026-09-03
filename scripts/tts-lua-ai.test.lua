@@ -588,12 +588,157 @@ function tests.state_migration()
   STATE.stateVersion = 3
   STATE.previousDefeatMargins = nil
   STATE.songBonuses = nil
+  STATE.currentWatcherId = nil
+  STATE.currentWatcherGuid = nil
+  STATE.watcherChoices = nil
+  STATE.watcherStrengthPenalties = nil
+  STATE.watcherNornsPending = nil
+  STATE.phase = "WATCHER_REVEAL"
   normalizeLoadedState()
-  assertEqual(STATE.stateVersion, 4, "loaded state should migrate to Hero momentum version")
+  assertEqual(STATE.stateVersion, 5, "loaded state should migrate to Watcher rules version")
   assertEqual(STATE.previousDefeatMargins.north, 0, "migration should initialize North Vengeance")
   assertEqual(STATE.previousDefeatMargins.south, 0, "migration should initialize South Vengeance")
   assertEqual(STATE.songBonuses.north, 0, "migration should initialize North Lead by Example carryover")
   assertEqual(STATE.songBonuses.south, 0, "migration should initialize South Lead by Example carryover")
+  assertTrue(type(STATE.watcherChoices) == "table", "migration should initialize Watcher choices")
+  assertTrue(type(STATE.watcherStrengthPenalties.north) == "table", "migration should initialize Watcher penalties")
+  assertTrue(STATE.watcherNornsPending, "migration should initialize Watcher timing state")
+end
+
+function tests.watcher_metadata_and_modifiers()
+  assertTrue(type(WATCHER_DATA) == "table", "Watcher metadata must be embedded in Lua")
+  assertEqual(#WATCHER_ORDER, 10, "all ten Watchers must be available")
+  assertEqual(WATCHER_DATA["watcher-thor"].name, "Thor", "Thor metadata must match the card source")
+  assertEqual(WATCHER_DATA["watcher-fimbulwinter"].timing, "BEFORE · DRAFT", "Fimbulwinter timing must match the card source")
+
+  local thor = watcherModifiersForState({ currentWatcherId = "watcher-thor" })
+  assertEqual(thor.weaponStrength.axe, 1, "Thor must bless Axe warriors")
+  assertEqual(thor.weaponStrength.sword, nil, "Thor must not bless Sword warriors")
+
+  local tyr = watcherModifiersForState({ currentWatcherId = "watcher-tyr" })
+  assertEqual(tyr.weaponStrength.sword, 1, "Týr must bless Sword warriors")
+  local odin = watcherModifiersForState({ currentWatcherId = "watcher-odin" })
+  assertEqual(odin.weaponStrength.spear, 1, "Odin must bless Spear warriors")
+
+  local njordr = watcherModifiersForState({ currentWatcherId = "watcher-njordr" })
+  assertTrue(njordr.reverseWeaponTriangle, "Njörðr must reverse the weapon triangle")
+  local fimbulwinter = watcherModifiersForState({ currentWatcherId = "watcher-fimbulwinter" })
+  assertTrue(fimbulwinter.suppressChains, "Fimbulwinter must suppress chain bonuses")
+  local norns = watcherModifiersForState({ currentWatcherId = "watcher-the-norns" })
+  assertTrue(norns.skipBerserkerPenalty, "The Norns must suppress the following Berserker penalty")
+end
+
+function tests.watcher_resolver_effects()
+  local function state(north, south, watcher)
+    return {
+      currentWatcherId = watcher,
+      formation = { north = north, south = south },
+      oaths = { north = {}, south = {} },
+      cursor = { north = 1, south = 1 },
+      chainBreaks = { north = {}, south = {} },
+      penalties = { north = false, south = false },
+      previousDefeatMargins = { north = 0, south = 0 },
+      songBonuses = { north = 0, south = 0 },
+    }
+  end
+
+  local thor = resolveClashState(state({ "axe-1" }, { "sword-1" }, "watcher-thor"), CARD_DATA, CONFIG, true)
+  assertEqual(thor.north.finalStrength, 2, "Thor must add Strength to Axe entries")
+  assertEqual(thor.south.finalStrength, 1, "Thor must not add Strength to Sword entries")
+
+  local frozenState = state({ "axe-1", "axe-2" }, { "sword-10" }, "watcher-fimbulwinter")
+  frozenState.cursor.north = 2
+  local frozen = resolveClashState(frozenState, CARD_DATA, CONFIG, true)
+  assertEqual(frozen.north.finalStrength, 2, "Fimbulwinter must remove same-weapon chain bonuses")
+
+  local reversed = resolveClashState(state({ "axe-1" }, { "sword-1" }, "watcher-njordr"), CARD_DATA, CONFIG, true)
+  assertEqual(reversed.winner, "south", "Njörðr must reverse an equal weapon tie-break")
+
+  local huntedState = state({ "axe-1" }, { "sword-10" }, "watcher-skadi")
+  huntedState.watcherChoices = { north = { slot = 1 }, south = nil }
+  local hunted = resolveClashState(huntedState, CARD_DATA, CONFIG, true)
+  assertEqual(hunted.south.finalStrength, 8, "Skaði must apply -2 to the chosen enemy slot")
+  assertTrue(string.find(table.concat(hunted.logs, " "), "Watcher penalty", 1, true) ~= nil, "Skaði must be named in the combat log")
+
+  local nornsState = state({ "axe-1" }, { "sword-10" }, "watcher-the-norns")
+  nornsState.penalties.north = true
+  local norns = resolveClashState(nornsState, CARD_DATA, CONFIG, true)
+  assertEqual(norns.winner, "south", "The Norns should allow the following Clash to resolve normally")
+  assertEqual(norns.nextPenalties.north, false, "The Norns should consume the Berserker penalty protection")
+  local nornsTrigger = state({ "berserker-1" }, { "axe-1" }, "watcher-the-norns")
+  local protected = resolveClashState(nornsTrigger, CARD_DATA, CONFIG, true)
+  assertEqual(protected.winner, "north", "The Norns should not remove the Berserker's current automatic win")
+  assertEqual(protected.nextPenalties.north, false, "The Norns should suppress the Berserker's following penalty")
+  assertTrue(string.find(table.concat(norns.logs, " "), "Norns", 1, true) ~= nil, "The Norns effect must be logged")
+end
+
+function tests.watcher_post_lock_choices()
+  local base = {
+    currentWatcherId = "watcher-loki",
+    formation = { north = { "axe-1", "axe-2" }, south = { "sword-1", "sword-2" } },
+    watcherChoices = { north = { slot = 1 }, south = { slot = 2 } },
+  }
+  local swapped = applyWatcherPostLockEffect(base)
+  assertEqual(swapped.formation.north[1], "axe-1", "Loki must preserve the unselected North slot")
+  assertEqual(swapped.formation.north[2], "sword-1", "Loki must move the selected South warrior to the selected North slot")
+  assertEqual(swapped.formation.south[1], "axe-2", "Loki must move the selected North warrior to the selected South slot")
+  assertEqual(swapped.formation.south[2], "sword-2", "Loki must preserve the unselected South slot")
+
+  local skadi = {
+    currentWatcherId = "watcher-skadi",
+    formation = { north = { "axe-1" }, south = { "sword-1" } },
+    watcherChoices = { north = { slot = 1 }, south = nil },
+  }
+  local targeted = applyWatcherPostLockEffect(skadi)
+  assertEqual(targeted.watcherStrengthPenalties.south[1], -2, "Skaði must target the enemy line")
+
+  assertTrue(watcherForcesFaceUp("watcher-heimdall", 3), "Heimdall must reveal position 3")
+  assertTrue(not watcherForcesFaceUp("watcher-heimdall", 2), "Heimdall must not reveal other positions")
+  assertTrue(not watcherForcesFaceUp("watcher-frigg", 3), "Frigg must not permanently reveal a position")
+
+  local aiNorth = plan({ "axe-1", "axe-2", "axe-3", "axe-8", "axe-10" })
+  local aiSouth = plan({ "sword-1", "sword-2", "sword-3", "sword-8", "sword-10" })
+  local modeled = watcherStateForPlans({ currentWatcherId = "watcher-loki" }, aiNorth, aiSouth, CARD_DATA)
+  assertEqual(modeled.formation.north[5], "sword-10", "AI simulation must model Loki's post-lock swap")
+  assertEqual(modeled.formation.south[5], "axe-10", "AI simulation must model both Loki selections")
+end
+
+function tests.watcher_private_view()
+  local visibility = nil
+  local rotation = nil
+  local card = fakeObjects["sword-1"]
+  card.setLock = function(value) card.locked = value end
+  card.setRotation = function(value) rotation = value end
+  card.setInvisibleTo = function(players) visibility = players end
+  STATE = newState()
+  STATE.sideColors = { north = "White", south = "Blue" }
+  STATE.phase = "WATCHER_CHOICES"
+  STATE.currentWatcherId = "watcher-frigg"
+  STATE.formation = { north = { "axe-1" }, south = { "sword-1" } }
+  STATE.watcherChoices = { north = { done = false }, south = { done = true } }
+
+  assertTrue(watcherViewSlot("north", 1), "Frigg should reveal a selected enemy card")
+  assertEqual(visibility[1], "Blue", "Frigg should hide the viewed card from the opponent")
+  assertEqual(rotation.z, 0, "Frigg should turn the viewed card face-up")
+  assertTrue(STATE.watcherChoices.north.viewing, "Frigg should keep the view open until confirmation")
+  assertTrue(finishWatcherView("north"), "Frigg should close the private view")
+  assertEqual(#visibility, 0, "Frigg should clear opponent invisibility after hiding the card")
+  assertEqual(rotation.z, 180, "Frigg should return the viewed card face-down")
+  assertTrue(STATE.watcherChoices.north.done, "Frigg should mark the view complete")
+end
+
+function tests.watcher_ai_oracle()
+  local north = plan({ "axe-1", "axe-2", "axe-3", "berserker-1", "axe-10" })
+  local south = plan({ "sword-1", "sword-2", "sword-3", "sword-9", "sword-10" })
+  for _, watcherId in ipairs({ "watcher-thor", "watcher-fimbulwinter", "watcher-njordr", "watcher-the-norns", "watcher-loki", "watcher-skadi" }) do
+    local watcherState = { currentWatcherId = watcherId, watcherNornsPending = true }
+    local reference = simulateSkirmishWithResolver(north, south, CARD_DATA, CONFIG, watcherState)
+    local fast = simulateSkirmish(north, south, CARD_DATA, CONFIG, { currentWatcherId = watcherId, watcherNornsPending = true })
+    assertEqual(fast.winner, reference.winner, watcherId .. " fast winner")
+    assertEqual(fast.score.north, reference.score.north, watcherId .. " fast North score")
+    assertEqual(fast.score.south, reference.score.south, watcherId .. " fast South score")
+    assertEqual(fast.clashesPlayed, reference.clashesPlayed, watcherId .. " fast clashes played")
+  end
 end
 
 function tests.full_strategic_choice()
