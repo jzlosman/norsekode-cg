@@ -1256,7 +1256,7 @@
       ],
       "CustomDeck": {
         "2": {
-          "FaceURL": "https://YOUR-ASSET-HOST/norse-kode/norse-kode-watchers.png",
+          "FaceURL": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/140c67336063a776cdf93a5c1e7ba1ef9c7355c4/tts/assets/norse-kode-watchers.png",
           "BackURL": "https://raw.githubusercontent.com/jzlosman/norsekode-cg/bab33224d9eb91a8c30c606243d5953543e2f96f/tts/assets/card-back.png",
           "NumWidth": 5,
           "NumHeight": 2,
